@@ -70,9 +70,10 @@ class DataBase:
                 '''
         self.execute(sql, (channel_id, user_id), commit=True)
 
-    def load_join_requests(self, admin_id: int, channel_id: int):
-        sql = 'SELECT user_id, user_tg_id FROM users_join_requests WHERE admin_tg_id=? AND channel_tg_id=?'
-        result = self.execute(sql, (admin_id, channel_id), fetchall=True)
+    def load_join_requests(self, channel_tg_id: int):
+        channel_id = self._get_channel_id(channel_tg_id)
+        sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
+        result = self.execute(sql, (channel_id,), fetchall=True)
         return list(map(lambda x: x[1], sorted(result)))
 
     def load_amount_requests_by_user(self, user_id: int):
@@ -85,8 +86,9 @@ class DataBase:
         sql = '''SELECT channel_tg_id FROM channels_admins WHERE admin_tg_id=?'''
         return list(map(lambda x: x[0], self.execute(sql, (admin_tg_id,), fetchall=True)))
 
-    def delete_join_request(self, channel_id: int, user_id: int):
-        sql = 'DELETE FROM users_join_requests WHERE channel_tg_id=? AND user_tg_id=?'
+    def delete_join_request(self, channel_tg_id: int, user_id: int):
+        channel_id = self._get_channel_id(channel_tg_id)
+        sql = 'DELETE FROM users_join_requests WHERE channel_id=? AND user_tg_id=?'
         self.execute(sql, (channel_id, user_id), commit=True)
 
     #

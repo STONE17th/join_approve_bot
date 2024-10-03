@@ -14,7 +14,7 @@ dp = Dispatcher()
 
 router = Router()
 
-dp.include_routers(router, fsm_router)
+dp.include_routers(fsm_router, router)
 db = DataBase()
 
 
@@ -25,7 +25,7 @@ async def com_add(message: Message, bot: Bot):
         channel = await bot.get_chat(channel_tg_id)
         channels.append((channel.title, channel_tg_id))
     await message.answer('Выберите канал для управления:',
-                         reply_markup=inline_keyboards.kb_channels_admin(message.from_user.id, channels))
+                         reply_markup=inline_keyboards.kb_channels_list(message.from_user.id, channels))
 
 
 @router.chat_join_request()
