@@ -1,10 +1,13 @@
 from aiogram.filters.callback_data import CallbackData
 
 
-class ApproveUsers(CallbackData, prefix='AU'):
-    menu: str
-    button: str = ''
-    value: str = ''
+class TestButton(CallbackData, prefix='TEST'):
+    button: str
+
+
+class RequestChannel(CallbackData, prefix='RC'):
+    target: str
+    value: str = 'None'
     admin_tg_id: int = 0
     channel_tg_id: int = 0
     user_tg_id: int = 0

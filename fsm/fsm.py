@@ -4,19 +4,17 @@ from aiogram.fsm.context import FSMContext
 
 from database.data_base import DataBase
 from .states import CallbackState
-from keyborads.callback_data import NewOrOld, ConfirmCallback, BackButton, ApproveUsers
+from keyborads.callback_data import NewOrOld, ConfirmCallback, BackButton, RequestChannel
 from keyborads import inline_keyboards
 
 router = Router()
+db = DataBase()
 
 
-# @router.callback_query(BackButton.filter(F.menu == 'amount'))
-@router.callback_query(ApproveUsers.filter(F.menu == 'select_channel'))
-async def select_channel(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    print('Here')
+@router.callback_query(RequestChannel.filter(F.target == 'select_channel'))
+async def select_channel(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot) -> None:
     await state.set_state(CallbackState.channel_tg_id)
-    # data = list(map(int, callback.data.split(':')[2:]))
-    # print(data)
+    print(db.load_amount_requests_in_channel(callback_data.channel_tg_id))
     await state.update_data(admin_tg_id=callback_data.admin_tg_id, channel_tg_id=callback_data.channel_tg_id)
     await bot.edit_message_text(
         'Каких пользователей будем добавлять?',
@@ -27,15 +25,19 @@ async def select_channel(callback: CallbackQuery, state: FSMContext, bot: Bot) -
 
 
 @router.callback_query(CallbackState.channel_tg_id, NewOrOld.filter(F.button == 'new_old'))
-async def new_or_old_selection(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    data = 0 if callback.data.split(':')[-1] == 'new' else -1
-    await state.update_data(index=data)
-    await state.update_data(amount_message_id=callback.message.message_id)
+async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld, state: FSMContext, bot: Bot) -> None:
+    data = 0 if callback_data.value == 'new' else -1
+    await state.update_data(index=data, amount_message_id=callback.message.message_id)
+    user_data = await state.get_data()
     await bot.edit_message_text(
         f'Сколько будем {'старых' if data else 'новых'} добавлять?',
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
-        reply_markup=inline_keyboards.back_button('amount')
+        reply_markup=inline_keyboards.back_button(
+            user_data['admin_tg_id'],
+            user_data['channel_tg_id'],
+            'select_channel',
+        )
     )
     await state.set_state(CallbackState.group)
 
@@ -58,14 +60,17 @@ async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
             f'Ошибка! {message.text}\nТребуется ввести целое положительное число!',
             chat_id=message.chat.id,
             message_id=data['amount_message_id'],
-            reply_markup=inline_keyboards.back_button('amount')
+            reply_markup=inline_keyboards.back_button(
+                data['admin_tg_id'],
+                data['channel_tg_id'],
+                'select_channel',
+            )
         )
 
 
 @router.callback_query(CallbackState.confirm, ConfirmCallback.filter(F.button == 'confirm_join'))
 async def confirm_requests(callback: CallbackQuery, callback_data: ConfirmCallback, state: FSMContext, bot: Bot):
     if callback_data.value == 'yes':
-        db = DataBase()
         data = await state.get_data()
         index = data['index']
         amount = data['amount']
@@ -92,7 +97,6 @@ async def confirm_requests(callback: CallbackQuery, callback_data: ConfirmCallba
         # await new_user_name(callback, state, bot)
         pass
     await state.clear()
-
 
 # @router.callback_query(BackButton.filter(F.button == 'back_button'))
 # async def back_button(callback: CallbackQuery, callback_data: BackButton, state: FSMContext, bot: Bot):
