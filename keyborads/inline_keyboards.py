@@ -1,3 +1,4 @@
+from aiogram import Bot
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
@@ -11,11 +12,11 @@ def kb_test_button():
     return keyboard.as_markup()
 
 
-async def kb_channels_list(channels: list[Channel]):
+async def kb_channels_list(channels: dict[int, Channel], bot: Bot):
     keyboard = InlineKeyboardBuilder()
-    for channel in channels:
+    for channel in channels.values():
         keyboard.button(
-            text=await channel.title(),
+            text=await channel.title(bot),
             callback_data=RequestChannel(
                 target='select_channel',
                 admin_tg_id=channel.admin,

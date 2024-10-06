@@ -57,45 +57,46 @@ class DataBase:
                 '''
         self.execute(sql, (user_tg_id, channel_tg_id), commit=True)
 
-    def load_channel(self, tg_id):
+    def load_channel(self, tg_id: int):
         sql = '''SELECT channel_id, admin_tg_id FROM channels_admins WHERE channel_tg_id=?'''
         return self.execute(sql, (tg_id,), fetchone=True)
 
-    def _get_channel_id(self, channel_tg_id: int):
-        sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
-        return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
+    def load_channels(self, admin_tg_id: int):
+        sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=?'''
+        return self.execute(sql, (admin_tg_id,), fetchall=True)
 
-    def add_join_request(self, channel_tg_id: int, user_id: int):
-        channel_id = self._get_channel_id(channel_tg_id)
-        sql = '''INSERT OR IGNORE INTO users_join_requests(
-                channel_id,
-                user_tg_id)
-                VALUES (?, ?)
-                '''
-        self.execute(sql, (channel_id, user_id), commit=True)
-
-    def load_channel_requests(self, channel_id: int):
+    def load_requests(self, channel_id: int):
         sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
         return self.execute(sql, (channel_id,), fetchall=True)
 
-    def load_amount_requests_by_user(self, user_id: int):
-        sql = '''SELECT channel_tg_id, user_tg_id FROM users_join_requests
-                JOIN channels_admins ON users_join_requests.channel_id = channels_admins.channel_id
-                WHERE admin_tg_id=?'''
-        return self.execute(sql, (user_id,), fetchall=True)
+    # def _get_channel_id(self, channel_tg_id: int):
+    #     sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
+    #     return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
 
-    def load_amount_requests_in_channel(self, channel_tg_id: int):
-        sql = '''SELECT users_join_requests.user_tg_id FROM channels_admins
-                        JOIN users_join_requests ON users_join_requests.channel_id = channels_admins.channel_id
-                        WHERE channel_tg_id=?'''
-        return self.execute(sql, (channel_tg_id,), fetchone=True)
+    # def add_join_request(self, channel_tg_id: int, user_id: int):
+    #     channel_id = self._get_channel_id(channel_tg_id)
+    #     sql = '''INSERT OR IGNORE INTO users_join_requests(
+    #             channel_id,
+    #             user_tg_id)
+    #             VALUES (?, ?)
+    #             '''
+    #     self.execute(sql, (channel_id, user_id), commit=True)
+    #
+    #
+    #
+    # def load_amount_requests_by_user(self, user_id: int):
+    #     sql = '''SELECT channel_tg_id, user_tg_id FROM users_join_requests
+    #             JOIN channels_admins ON users_join_requests.channel_id = channels_admins.channel_id
+    #             WHERE admin_tg_id=?'''
+    #     return self.execute(sql, (user_id,), fetchall=True)
 
-    def load_admin_channels(self, admin_tg_id: int):
-        sql = '''SELECT channel_tg_id FROM channels_admins WHERE admin_tg_id=?'''
-        return self.execute(sql, (admin_tg_id,), fetchall=True)
+    # def load_amount_requests_in_channel(self, channel_tg_id: int):
+    #     sql = '''SELECT users_join_requests.user_tg_id FROM channels_admins
+    #                     JOIN users_join_requests ON users_join_requests.channel_id = channels_admins.channel_id
+    #                     WHERE channel_tg_id=?'''
+    #     return self.execute(sql, (channel_tg_id,), fetchone=True)
 
-    def delete_join_request(self, channel_tg_id: int, user_id: int):
-        channel_id = self._get_channel_id(channel_tg_id)
+    def delete_join_request(self, channel_id: int, user_id: int):
         sql = 'DELETE FROM users_join_requests WHERE channel_id=? AND user_tg_id=?'
         self.execute(sql, (channel_id, user_id), commit=True)
 

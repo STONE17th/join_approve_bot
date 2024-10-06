@@ -2,6 +2,7 @@ from aiogram import Bot, Router, F
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.fsm.context import FSMContext
 
+from classes import Admin
 from database.data_base import DataBase
 from .states import CallbackState
 from keyborads.callback_data import NewOrOld, ConfirmCallback, BackButton, RequestChannel
@@ -14,7 +15,6 @@ db = DataBase()
 @router.callback_query(RequestChannel.filter(F.target == 'select_channel'))
 async def select_channel(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot) -> None:
     await state.set_state(CallbackState.channel_tg_id)
-    print(db.load_amount_requests_in_channel(callback_data.channel_tg_id))
     await state.update_data(admin_tg_id=callback_data.admin_tg_id, channel_tg_id=callback_data.channel_tg_id)
     await bot.edit_message_text(
         'Каких пользователей будем добавлять?',
@@ -26,7 +26,7 @@ async def select_channel(callback: CallbackQuery, callback_data: RequestChannel,
 
 @router.callback_query(CallbackState.channel_tg_id, NewOrOld.filter(F.button == 'new_old'))
 async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld, state: FSMContext, bot: Bot) -> None:
-    data = 0 if callback_data.value == 'new' else -1
+    data = False if callback_data.value == 'new' else True
     await state.update_data(index=data, amount_message_id=callback.message.message_id)
     user_data = await state.get_data()
     await bot.edit_message_text(
@@ -76,21 +76,13 @@ async def confirm_requests(callback: CallbackQuery, callback_data: ConfirmCallba
         amount = data['amount']
         admin_tg_id = data['admin_tg_id']
         channel_tg_id = data['channel_tg_id']
-        users = db.load_join_requests(channel_tg_id)
+        user_admin = Admin(admin_tg_id)
         joined_users = 0
-        while amount and users:
-            if index:
-                user_id = users.pop(0)
-            else:
-                user_id = users.pop()
-            try:
-                await bot.approve_chat_join_request(channel_tg_id, user_id)
-                db.delete_join_request(channel_tg_id, user_id)
-                print(f'Добавил {user_id}')
-                amount -= 1
+        while amount and (channels := user_admin.channels[channel_tg_id]):
+            if await channels.approve_request(bot, index):
                 joined_users += 1
-            except:
-                pass
+            amount -= 1
+
         await callback.answer(f'Done! Добавлено {joined_users} пользователей!', show_alert=True)
     else:
         # await state.set_state(UserState.name)

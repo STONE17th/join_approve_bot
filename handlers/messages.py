@@ -1,5 +1,5 @@
 from aiogram import Bot, F, Router
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.filters import Command
 
 from classes.classes import Admin, Channel
@@ -11,47 +11,29 @@ router = Router()
 db = DataBase()
 
 
-async def amount_join_requests(admin_name: str, admin_tg_id: int, bot: Bot) -> str:
-    data = db.load_amount_requests_by_user(admin_tg_id)
-    result = {}
-    for channel, _ in data:
-        channel = await bot.get_chat(channel)
-        channel = channel.title
-        if channel in result:
-            result[channel] += 1
-        else:
-            result[channel] = 1
-    return '\n'.join([f'{admin_name}, Ваши каналы и количество заявок на данный момент:'] +
-                     [f'{channel_id}: {users_amount}' for channel_id, users_amount in result.items()])
-
-
-@router.message(Command('test'))
-async def com_add(message: Message, bot: Bot):
-    user = Admin(message.from_user.id)
-    text = await user.requests_in_channels
-    await message.answer(text)
+# async def amount_join_requests(admin_name: str, admin_tg_id: int, bot: Bot) -> str:
+#     data = db.load_amount_requests_by_user(admin_tg_id)
+#     result = {}
+#     for channel, _ in data:
+#         channel = await bot.get_chat(channel)
+#         channel = channel.title
+#         if channel in result:
+#             result[channel] += 1
+#         else:
+#             result[channel] = 1
+#     return '\n'.join([f'{admin_name}, Ваши каналы и количество заявок на данный момент:'] +
+#                      [f'{channel_id}: {users_amount}' for channel_id, users_amount in result.items()])
 
 
 @router.message(Command('start'))
 async def command_start(message: Message, bot: Bot):
-    user = Admin(message.from_user.id, bot)
-    if await user.channels:
-        message_text = f'{message.from_user.full_name}, это твои каналы:\n' + await user.requests_in_channels
-    # channels = []
-    # for channel_tg_id in db.load_admin_channels(message.from_user.id):
-    #     channel = await bot.get_chat(channel_tg_id)
-    #     channels.append((channel.title, channel_tg_id))
-    # if channels:
-    #     message_text = await amount_join_requests(
-    #         message.from_user.full_name,
-    #         message.from_user.id,
-    #         bot,
-    #     ) + '\n\nВыберите канал для управления:'
-    else:
-        message_text = f'{message.from_user.full_name}, добавьте бота в канал для управления'
+    user = Admin(message.from_user.id)
+    message_text = f'{message.from_user.full_name}, '
+    msg = ['добавьте бота в канал для управления', 'это твои каналы:\n']
+    message_text += msg[bool(len(user.channels))]
     await message.answer(
         text=message_text,
-        reply_markup=await inline_keyboards.kb_channels_list(await user.channels)
+        reply_markup=await inline_keyboards.kb_channels_list(user.channels, bot)
     )
 
 
