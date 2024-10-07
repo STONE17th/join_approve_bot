@@ -1,9 +1,8 @@
 from aiogram import Bot
-from aiogram.types import Message
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from .callback_data import NewOrOld, ConfirmCallback, BackButton, RequestChannel, TestButton
-from classes import Admin, Channel
+from .callback_data import NewOrOld, ConfirmCallback, RequestChannel, TestButton
+from classes import Channel
 
 
 def kb_test_button():

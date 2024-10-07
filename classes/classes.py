@@ -13,14 +13,14 @@ class Channel:
         self.requests = self._requests()
 
     @classmethod
-    def new(cls, admin_tg_id: int, tg_id: int, bot: Bot):
+    def new(cls, admin_tg_id: int, tg_id: int):
         cls.db.add_new_channel(admin_tg_id, tg_id)
-        return cls.load(tg_id, bot)
+        return cls.load(tg_id)
 
     @classmethod
-    def load(cls, tg_id: int, bot: Bot):
+    def load(cls, tg_id: int):
         channel_id, admin_tg_id = cls.db.load_channel(tg_id)
-        return cls(admin_tg_id, channel_id, tg_id, bot)
+        return cls(admin_tg_id, channel_id, tg_id)
 
     def _requests(self):
         return [Request(channel[1], self.id, self.tg_id) for channel in sorted(Channel.db.load_requests(self.id))]
@@ -35,10 +35,10 @@ class Channel:
             await request.approve(self.db, bot)
             return True
 
-    # async def amount_requests(self, string: bool = True):
-    #     if string:
-    #         return f'{await self.title()}: {len(self.requests)}'
-    #     return await self.title(), self.requests
+    async def amount_requests_in_channel(self, bot: Bot, full: bool = True):
+        if full:
+            return f'{await self.title(bot)}: {len(self.requests)}'
+        return f'{len(self.requests)}'
 
     def __str__(self):
         return f'ID: {self.id} ({self.tg_id})'
@@ -52,9 +52,9 @@ class Request:
         self.channel_id = channel_id
 
     async def approve(self, db: DataBase, bot: Bot):
-        db.delete_join_request(self.channel_tg_id, self.tg_id)
+        db.delete_join_request(self.channel_id, self.tg_id)
         try:
-            await bot.approve_chat_join_request(self.channel_id, self.tg_id)
+            await bot.approve_chat_join_request(self.channel_tg_id, self.tg_id)
             return True
         except:
             print(f'Не удалось добавить {self.tg_id}')
@@ -71,23 +71,8 @@ class Admin:
     def channels(self):
         return {channel[1]: Channel(self.tg_id, *channel) for channel in self.db.load_channels(self.tg_id)}
 
-    # async def amount_requests(self, bot: Bot):
-    #     result = []
-    #     for channel in self.channels.values():
-    #         channel_name = await channel.title(bot)
-    #         channel_amount_requests = len(channel.requests)
-    #         result.append(f'{channel_name}: {channel_amount_requests}')
-    #     return '\n'.join(result)
-
-    # async def approve_requests(self, channel_tg_id: int, new: bool):
-    #     request = await self.channels
-    #     request = request[channel_tg_id]
-    #
-    #     try:
-    #         await request.approve(channel_tg_id)
-    #     except:
-    #         pass
-    #     self.__class__.db.delete_join_request(channel_tg_id, request.id)
-
-    # async def for_keyboard(self):
-    #     return [(await channel.amount_requests(string=False)) for channel in self.channels]
+    async def amount_requests_in_channels(self, bot: Bot):
+        result = []
+        for channel in self.channels.values():
+            result.append(await channel.amount_requests_in_channel(bot))
+        return '\n' + '\n'.join(result)

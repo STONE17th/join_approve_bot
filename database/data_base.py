@@ -69,68 +69,19 @@ class DataBase:
         sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
         return self.execute(sql, (channel_id,), fetchall=True)
 
-    # def _get_channel_id(self, channel_tg_id: int):
-    #     sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
-    #     return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
+    def _get_channel_id(self, channel_tg_id: int):
+        sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
+        return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
 
-    # def add_join_request(self, channel_tg_id: int, user_id: int):
-    #     channel_id = self._get_channel_id(channel_tg_id)
-    #     sql = '''INSERT OR IGNORE INTO users_join_requests(
-    #             channel_id,
-    #             user_tg_id)
-    #             VALUES (?, ?)
-    #             '''
-    #     self.execute(sql, (channel_id, user_id), commit=True)
-    #
-    #
-    #
-    # def load_amount_requests_by_user(self, user_id: int):
-    #     sql = '''SELECT channel_tg_id, user_tg_id FROM users_join_requests
-    #             JOIN channels_admins ON users_join_requests.channel_id = channels_admins.channel_id
-    #             WHERE admin_tg_id=?'''
-    #     return self.execute(sql, (user_id,), fetchall=True)
-
-    # def load_amount_requests_in_channel(self, channel_tg_id: int):
-    #     sql = '''SELECT users_join_requests.user_tg_id FROM channels_admins
-    #                     JOIN users_join_requests ON users_join_requests.channel_id = channels_admins.channel_id
-    #                     WHERE channel_tg_id=?'''
-    #     return self.execute(sql, (channel_tg_id,), fetchone=True)
-
-    def delete_join_request(self, channel_id: int, user_id: int):
-        sql = 'DELETE FROM users_join_requests WHERE channel_id=? AND user_tg_id=?'
+    def add_join_request(self, channel_tg_id: int, user_id: int):
+        channel_id = self._get_channel_id(channel_tg_id)
+        sql = '''INSERT OR IGNORE INTO users_join_requests(
+                channel_id,
+                user_tg_id)
+                VALUES (?, ?)
+                '''
         self.execute(sql, (channel_id, user_id), commit=True)
 
-    #
-    # def new_user(self, user: list):
-    #     sql = '''INSERT OR IGNORE INTO users(
-    #             tg_id,
-    #             username,
-    #             first_name,
-    #             last_name,
-    #             balance,
-    #             reg_date,
-    #             status,
-    #             options)
-    #             VALUES (?, ?, ?)
-    #             '''
-    #     self.execute(sql, (*user,), commit=True)
-    #
-    # def load_bots(self):
-    #     sql = '''SELECT token FROM bots'''
-    #     return self.execute(sql, fetchall=True)
-    #
-    # def add_channel_to_bot(self, bot_id: int, channel_id: int):
-    #     sql = '''UPDATE bots SET channel_tg_id=? WHERE tg_id=?'''
-    #     self.execute(sql, (channel_id, bot_id), commit=True)
-    #
-    # def set_options(self, bot_id: int, option: str, value: int):
-    #     sql = f'''UPDATE bots SET {option}=? WHERE tg_id=?'''
-    #     self.execute(sql, (value, bot_id), commit=True)
-    #
-    # def toggle_auto_approve(self, bot_id: int):
-    #     sql = 'SELECT auto_approve FROM bots WHERE tg_id=?'
-    #     result = self.execute(sql, (bot_id,), fetchone=True)
-    #     result = 0 if result[0] else 1
-    #     sql = 'UPDATE bots SET auto_approve=? WHERE tg_id=?'
-    #     self.execute(sql, (result, bot_id), commit=True)
-    #     return result
+    def delete_join_request(self, channel_id: int, user_tg_id: int):
+        sql = 'DELETE FROM users_join_requests WHERE channel_id=? AND user_tg_id=?'
+        self.execute(sql, (channel_id, user_tg_id), commit=True)

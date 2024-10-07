@@ -1,5 +1,5 @@
 from aiogram import Bot, F, Router
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from classes import Admin
@@ -16,7 +16,7 @@ async def main_menu(callback: CallbackQuery, bot: Bot):
     user = Admin(callback.from_user.id)
     message_text = f'{callback.from_user.full_name}, '
     msg = ['добавьте бота в канал для управления', 'это твои каналы:\n']
-    message_text += msg[bool(len(user.channels))]
+    message_text += (msg[bool(len(user.channels))] + await user.amount_requests_in_channels(bot))
     await bot.edit_message_text(
         text=message_text,
         chat_id=callback.from_user.id,

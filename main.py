@@ -1,7 +1,7 @@
 import os
 import asyncio
 
-from aiogram import Bot, Dispatcher, Router, F
+from aiogram import Bot, Dispatcher, Router
 
 from database.data_base import DataBase
 from fsm import router as fsm_router
@@ -15,7 +15,6 @@ main_router = Router()
 dp.include_routers(
     handlers.callbacks_router,
     handlers.messages_router,
-    handlers.requests_router,
     fsm_router,
     main_router)
 db = DataBase()
