@@ -52,7 +52,7 @@ async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
         await state.update_data(amount=int(message.text))
         await state.set_state(CallbackState.confirm)
         await bot.edit_message_text(
-            f'Добавить {message.text} {'старых' if data['index'] else 'новых'} заявок?',
+            f'Добавить {message.text} {"старых" if data["index"] else "новых"} заявок?',
             chat_id=message.chat.id,
             message_id=data['amount_message_id'],
             reply_markup=inline_keyboards.kb_confirm()
