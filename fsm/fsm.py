@@ -32,7 +32,7 @@ async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld,
     await state.update_data(index=data, amount_message_id=callback.message.message_id)
     user_data = await state.get_data()
     await bot.edit_message_text(
-        f'Сколько будем {'старых' if data else 'новых'} добавлять?',
+        f'Сколько будем {"старых" if data else "новых"} добавлять?',
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
         reply_markup=inline_keyboards.back_button(
