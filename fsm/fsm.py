@@ -16,8 +16,11 @@ db = DataBase()
 async def select_channel(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot) -> None:
     admin_user = Admin(callback.from_user.id)
     await state.set_state(CallbackState.channel_tg_id)
-    await state.update_data(admin_tg_id=callback_data.admin_tg_id, channel_tg_id=callback_data.channel_tg_id)
-    amount_requests = await admin_user.channels[callback_data.channel_tg_id].amount_requests_in_channel(bot, full=False)
+    await state.update_data(
+        admin_tg_id=callback_data.admin_tg_id,
+        channel_tg_id=callback_data.channel_tg_id
+    )
+    amount_requests = admin_user
     await bot.edit_message_text(
         f'В этом канале {amount_requests} непринятых заявок\nКаких пользователей будем добавлять?',
         chat_id=callback.message.chat.id,

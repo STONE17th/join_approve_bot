@@ -11,21 +11,21 @@ def kb_test_button():
     return keyboard.as_markup()
 
 
-async def kb_channels_list(channels: dict[int, Channel], bot: Bot):
+async def kb_channels_list(channels_list: list[tuple[str, Channel]]):
     keyboard = InlineKeyboardBuilder()
-    for channel in channels.values():
+    for title, channel in channels_list:
         keyboard.button(
-            text=await channel.title(bot),
+            text=title,
             callback_data=RequestChannel(
                 target='select_channel',
-                admin_tg_id=channel.admin,
-                channel_tg_id=channel.tg_id,
+                admin_tg_id=channel.admin_tg_id,
+                channel_tg_id=channel.channel_tg_id,
             ),
         )
     keyboard.button(
         text='Помощь',
         callback_data=RequestChannel(target='help'))
-    keyboard.adjust(*[1] * len(channels), 1)
+    keyboard.adjust(*[1] * len(channels_list), 1)
     return keyboard.as_markup()
 
 

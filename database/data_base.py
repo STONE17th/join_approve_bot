@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 
 
 class DataBase:
@@ -6,23 +6,32 @@ class DataBase:
     db_path = 'database/sqlite3.db'
 
     def __new__(cls):
-        if not isinstance(cls._instance, cls):
+        if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance._user_name = 'root'
+            cls._instance._password = '17thDBpass'
+            cls._instance._db_name = 'modjoiner_db'
+            cls._instance._ip_address = '93.95.97.150'
         return cls._instance
 
-    @staticmethod
-    def execute(sql: str, parameters: tuple = tuple(),
+    # @staticmethod
+    def execute(self, sql: str, parameters: tuple = tuple(),
                 fetchone=False, fetchall=False, commit=False):
-        connection = sqlite3.connect(DataBase.db_path)
-        cursor = connection.cursor()
+        connection = psycopg2.connect(
+            user=self._user_name,
+            password=self._password,
+            dbname=self._db_name,
+            host=self._ip_address,
+        )
+        db_cursor = connection.cursor()
         data = None
-        cursor.execute(sql, parameters)
+        db_cursor.execute(sql, parameters)
         if commit:
             connection.commit()
         if fetchone:
-            data = cursor.fetchone()
+            data = db_cursor.fetchone()
         if fetchall:
-            data = cursor.fetchall()
+            data = db_cursor.fetchall()
         connection.close()
         return data
 
@@ -32,56 +41,75 @@ class DataBase:
         return sql, tuple(parameters.values())
 
     def create_tables(self):
-        sql_admins = '''CREATE TABLE IF NOT EXISTS channels_admins(
-                channel_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                admin_tg_id INTEGER,
-                channel_tg_id INTEGER,
-                UNIQUE(admin_tg_id, channel_tg_id))
-                '''
-        sql_users = '''CREATE TABLE IF NOT EXISTS users_join_requests(
-                entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                channel_id INTEGER,
-                user_tg_id INTEGER,
-                UNIQUE(channel_id, user_tg_id),
-                FOREIGN KEY (channel_id)  REFERENCES channels_admins (channel_id))
-                '''
-
-        for sql in (sql_admins, sql_users):
+        sqls = ['''CREATE TABLE IF NOT EXISTS admins(
+                entry_id        SERIAL PRIMARY KEY,
+                channel_tg_id   NUMERIC,
+                admin_tg_id     NUMERIC,
+                UNIQUE (channel_tg_id, admin_tg_id)                
+                )''',
+                '''CREATE TABLE IF NOT EXISTS requests(
+                entry_id        SERIAL PRIMARY KEY,
+                channel_tg_id   NUMERIC,
+                request_tg_id   NUMERIC,
+                UNIQUE (channel_tg_id, request_tg_id)
+                )''',
+                ]
+        for sql in sqls:
             self.execute(sql, commit=True)
 
-    def add_new_channel(self, user_tg_id: int, channel_tg_id: int):
-        sql = '''INSERT OR IGNORE INTO channels_admins(
-                admin_tg_id,
-                channel_tg_id)
-                VALUES (?, ?)
+    def add_channel(self, channel_tg_id: int, admin_tg_id: int):
+        sql = '''INSERT INTO admins(
+                channel_tg_id,
+                admin_tg_id)
+                VALUES (%s, %s)
                 '''
-        self.execute(sql, (user_tg_id, channel_tg_id), commit=True)
+        self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)
 
-    def load_channel(self, tg_id: int):
-        sql = '''SELECT channel_id, admin_tg_id FROM channels_admins WHERE channel_tg_id=?'''
-        return self.execute(sql, (tg_id,), fetchone=True)
+    def add_request(self, channel_tg_id: int, request_tg_id: int):
+        sql = '''INSERT INTO requests(
+                channel_tg_id,
+                request_tg_id)
+                VALUES (%s, %s)
+                '''
+        self.execute(sql, (channel_tg_id, request_tg_id), commit=True)
 
-    def load_channels(self, admin_tg_id: int):
-        sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=?'''
+    # def channel_length(self, channel_tg_id: int) -> int:
+    #     sql = f'''SELECT count(*) FROM table_{channel_tg_id}'''
+    #     return self.execute(sql, fetchall=True)
+
+    def load_channels(self, admin_tg_id: int) -> tuple[tuple[int], ...]:
+        sql = '''SELECT channel_tg_id FROM admins WHERE admin_tg_id=%s'''
         return self.execute(sql, (admin_tg_id,), fetchall=True)
 
-    def load_requests(self, channel_id: int):
-        sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
-        return self.execute(sql, (channel_id,), fetchall=True)
+    def load_requests(self, channel_tg_id: int) -> tuple[int, ...]:
+        sql = '''SELECT request_tg_id FROM requests WHERE channel_tg_id=%s'''
+        return self.execute(sql, (channel_tg_id,), fetchall=True)
 
-    def _get_channel_id(self, channel_tg_id: int):
-        sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
-        return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
+    # def load_admin_channels(self, admin_tg_id: int):
+    #     sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=%s'''
+    #     return self.execute(sql, (admin_tg_id,), fetchall=True)
+    #
+    # def load_requests(self, channel_id: int):
+    #     sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
+    #     return self.execute(sql, (channel_id,), fetchall=True)
 
-    def add_join_request(self, channel_tg_id: int, user_id: int):
-        channel_id = self._get_channel_id(channel_tg_id)
-        sql = '''INSERT OR IGNORE INTO users_join_requests(
-                channel_id,
-                user_tg_id)
-                VALUES (?, ?)
-                '''
-        self.execute(sql, (channel_id, user_id), commit=True)
+    # def _get_channel_id(self, channel_tg_id: int):
+    #     sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
+    #     return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
 
-    def delete_join_request(self, channel_id: int, user_tg_id: int):
-        sql = 'DELETE FROM users_join_requests WHERE channel_id=? AND user_tg_id=?'
-        self.execute(sql, (channel_id, user_tg_id), commit=True)
+    # def add_join_request(self, channel_tg_id: int, user_id: int):
+    #     channel_id = self._get_channel_id(channel_tg_id)
+    #     sql = '''INSERT OR IGNORE INTO users_join_requests(
+    #             channel_id,
+    #             user_tg_id)
+    #             VALUES (?, ?)
+    #             '''
+    #     self.execute(sql, (channel_id, user_id), commit=True)
+
+    def delete_request(self, channel_tg_id: int, request_tg_id: int):
+        sql = 'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s'
+        self.execute(sql, (channel_tg_id, request_tg_id), commit=True)
+
+    def delete_channel(self, channel_tg_id: int, admin_tg_id: int):
+        sql = 'DELETE FROM admins WHERE channel_tg_id=%s AND admin_tg_id=%s'
+        self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)

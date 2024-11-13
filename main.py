@@ -10,18 +10,21 @@ import handlers
 bot = Bot(os.getenv('TOKEN'))
 dp = Dispatcher()
 
-main_router = Router()
-
 dp.include_routers(
     handlers.callbacks_router,
     handlers.messages_router,
     fsm_router,
-    main_router)
-db = DataBase()
+)
 
 
 def on_start():
-    print('Бот запущен')
+    print('Bot is started...')
+    print('DataBase connection:', end=' ')
+    # try:
+    DataBase().create_tables()
+    print('OK!')
+    # except:
+    #     print('Failure!!')
 
 
 def on_shutdown():
@@ -31,7 +34,6 @@ def on_shutdown():
 async def start_bot():
     dp.startup.register(on_start)
     dp.shutdown.register(on_start)
-    db.create_tables()
     await dp.start_polling(bot)
 
 
