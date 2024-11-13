@@ -19,7 +19,7 @@ async def command_start(message: Message, bot: Bot):
     channels_list = []
     if admin.channels:
         message_text += 'это твои каналы:\n'
-        for channel in admin.channels:
+        for channel in admin.channels.values():
             channel_title = await channel.title(bot)
             channels_list.append((channel_title, channel))
             message_text += f'{channel_title}: {len(channel.requests)} заявок\n'
@@ -27,7 +27,7 @@ async def command_start(message: Message, bot: Bot):
         message_text += 'добавьте бота в канал для управления'
     await message.answer(
         text=message_text,
-        reply_markup=await inline_keyboards.kb_channels_list(channels_list)
+        reply_markup=inline_keyboards.kb_channels_list(channels_list)
     )
 
 

@@ -116,7 +116,5 @@ class Admin:
 
     @property
     def channels(self):
-        if self._channels is None:
-            self._channels = [Channel(channel_tg_id[0], self.admin_tg_id)
-                              for channel_tg_id in self.db.load_channels(self.admin_tg_id)]
-        return self._channels
+        return {int(channel_tg_id[0]): Channel(channel_tg_id[0], self.admin_tg_id)
+                for channel_tg_id in self.db.load_channels(self.admin_tg_id)}

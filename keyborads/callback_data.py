@@ -1,8 +1,9 @@
 from aiogram.filters.callback_data import CallbackData
 
 
-class TestButton(CallbackData, prefix='TEST'):
-    button: str
+class NewOrOld(CallbackData, prefix='NOO'):
+    button: str = 'new_old'
+    value: str = 'None'
 
 
 class RequestChannel(CallbackData, prefix='RC'):
@@ -13,8 +14,8 @@ class RequestChannel(CallbackData, prefix='RC'):
     user_tg_id: int = 0
 
 
-class NewOrOld(CallbackData, prefix='NO'):
-    button: str = 'new_old'
+class RequestsGroup(CallbackData, prefix='RG'):
+    button: str = 'requests_group'
     value: str
 
 

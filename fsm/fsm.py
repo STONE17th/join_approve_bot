@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from classes import Admin
 from database.data_base import DataBase
 from .states import CallbackState
-from keyborads.callback_data import NewOrOld, ConfirmCallback, RequestChannel
+from keyborads.callback_data import ConfirmCallback, NewOrOld, RequestChannel
 from keyborads import inline_keyboards
 
 router = Router()
@@ -20,7 +20,9 @@ async def select_channel(callback: CallbackQuery, callback_data: RequestChannel,
         admin_tg_id=callback_data.admin_tg_id,
         channel_tg_id=callback_data.channel_tg_id
     )
-    amount_requests = admin_user
+    print(admin_user.channels)
+    print(callback_data.channel_tg_id)
+    amount_requests = len(admin_user.channels[callback_data.channel_tg_id].requests)
     await bot.edit_message_text(
         f'В этом канале {amount_requests} непринятых заявок\nКаких пользователей будем добавлять?',
         chat_id=callback.message.chat.id,
@@ -31,11 +33,16 @@ async def select_channel(callback: CallbackQuery, callback_data: RequestChannel,
 
 @router.callback_query(CallbackState.channel_tg_id, NewOrOld.filter(F.button == 'new_old'))
 async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld, state: FSMContext, bot: Bot) -> None:
-    data = False if callback_data.value == 'new' else True
-    await state.update_data(index=data, amount_message_id=callback.message.message_id)
+    if callback_data.value == 'new':
+        msg_users = 'новых'
+    elif callback_data.value == 'old':
+        msg_users = 'старых'
+    else:
+        msg_users = 'рандомных'
+    await state.update_data(index=msg_users, amount_message_id=callback.message.message_id)
     user_data = await state.get_data()
     await bot.edit_message_text(
-        f'Сколько будем {"старых" if data else "новых"} добавлять?',
+        f'Сколько будем {msg_users} добавлять?',
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
         reply_markup=inline_keyboards.back_button(
@@ -55,10 +62,13 @@ async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
         await state.update_data(amount=int(message.text))
         await state.set_state(CallbackState.confirm)
         await bot.edit_message_text(
-            f'Добавить {message.text} {"старых" if data["index"] else "новых"} заявок?',
+            f'Добавить {message.text} {data["index"]} заявок?',
             chat_id=message.chat.id,
             message_id=data['amount_message_id'],
-            reply_markup=inline_keyboards.kb_confirm()
+            reply_markup=inline_keyboards.kb_confirm(
+                channel_tg_id=data['channel_tg_id'],
+                admin_tg_id=data['admin_tg_id'],
+            ),
         )
     else:
         await bot.edit_message_text(

@@ -20,11 +20,11 @@ dp.include_routers(
 def on_start():
     print('Bot is started...')
     print('DataBase connection:', end=' ')
-    # try:
-    DataBase().create_tables()
-    print('OK!')
-    # except:
-    #     print('Failure!!')
+    try:
+        DataBase().create_tables()
+        print('OK!')
+    except:
+        print('Failure!!')
 
 
 def on_shutdown():

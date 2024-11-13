@@ -1,17 +1,11 @@
 from aiogram import Bot
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from .callback_data import NewOrOld, ConfirmCallback, RequestChannel, TestButton
+from .callback_data import NewOrOld, ConfirmCallback, RequestChannel
 from classes import Channel
 
 
-def kb_test_button():
-    keyboard = InlineKeyboardBuilder()
-    keyboard.button(text='TEST', callback_data=TestButton(button='test'))
-    return keyboard.as_markup()
-
-
-async def kb_channels_list(channels_list: list[tuple[str, Channel]]):
+def kb_channels_list(channels_list: list[tuple[str, Channel]]):
     keyboard = InlineKeyboardBuilder()
     for title, channel in channels_list:
         keyboard.button(
@@ -32,16 +26,23 @@ async def kb_channels_list(channels_list: list[tuple[str, Channel]]):
 def kb_new_or_old():
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text='Старые', callback_data=NewOrOld(value='old'))
+    keyboard.button(text='Случайно', callback_data=NewOrOld(value='random'))
     keyboard.button(text='Новые', callback_data=NewOrOld(value='new'))
     keyboard.button(text='Назад', callback_data=RequestChannel(target='main_menu'))
-    keyboard.adjust(2, 1)
+    keyboard.adjust(3, 1)
     return keyboard.as_markup()
 
 
-def kb_confirm():
+def kb_confirm(channel_tg_id: int, admin_tg_id: int):
     keyboard = InlineKeyboardBuilder()
+    print(channel_tg_id)
     keyboard.button(text='Да', callback_data=ConfirmCallback(value='yes'))
-    keyboard.button(text='Назад', callback_data=RequestChannel(target='select_channel'))
+    keyboard.button(text='Назад', callback_data=RequestChannel(
+        target='select_channel',
+        admin_tg_id=admin_tg_id,
+        channel_tg_id=channel_tg_id,
+    ),
+                    )
     keyboard.button(text='Главное меню', callback_data=RequestChannel(target='main_menu'))
     keyboard.adjust(2, 1)
     return keyboard.as_markup()

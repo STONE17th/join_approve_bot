@@ -36,7 +36,7 @@ class DataBase:
         return data
 
     @staticmethod
-    def extract_kwargs(sql: str, parameters: dict, _and: bool = True) -> tuple:
+    def _extract_kwargs(sql: str, parameters: dict, _and: bool = True) -> tuple:
         sql += (' AND ' if _and else ', ').join([f'{key} = ?' for key in parameters])
         return sql, tuple(parameters.values())
 
