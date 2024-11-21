@@ -45,12 +45,22 @@ class DataBase:
                 entry_id        SERIAL PRIMARY KEY,
                 channel_tg_id   NUMERIC,
                 admin_tg_id     NUMERIC,
+                min_requests    NUMERIC,
+                max_requests    NUMERIC,
                 UNIQUE (channel_tg_id, admin_tg_id)                
                 )''',
                 '''CREATE TABLE IF NOT EXISTS requests(
                 entry_id        SERIAL PRIMARY KEY,
                 channel_tg_id   NUMERIC,
                 request_tg_id   NUMERIC,
+                date_created    DATE
+                UNIQUE (channel_tg_id, request_tg_id)
+                )''',
+                '''CREATE TABLE IF NOT EXISTS approved_requests(
+                entry_id        SERIAL PRIMARY KEY,
+                channel_tg_id   NUMERIC,
+                request_tg_id   NUMERIC,
+                date_approved   DATE
                 UNIQUE (channel_tg_id, request_tg_id)
                 )''',
                 ]

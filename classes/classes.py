@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from random import randint
 
+from classes.scheduler import Scheduler
 from database.data_base import DataBase
 
 
@@ -34,7 +35,7 @@ class Request:
 
 class Channel:
     db = DataBase()
-    _bot_scheduler = AsyncIOScheduler()
+    _bot_scheduler = Scheduler()
 
     # def __new__(cls, *args, **kwargs):
     #     if Channel._bot_scheduler is None:
@@ -44,7 +45,9 @@ class Channel:
         self.channel_tg_id = channel_tg_id
         self.admin_tg_id = admin_tg_id
         self._requests = None
-        self.scheduler: AsyncIOScheduler | None = None
+        self.min_requests = 0
+        self.max_requests = 0
+        # self.scheduler: AsyncIOScheduler | None = None
 
     @property
     def requests(self):
@@ -61,18 +64,6 @@ class Channel:
         if self.requests:
             return self.requests.pop() if new else self.requests.pop(0)
 
-    async def test_approve(self, request_count: tuple[int, int]):
-        requests = randint(*request_count)
-        for _ in range(requests):
-            time_pause = 60 // requests - 1
-            await asyncio.sleep(time_pause)
-            if self.requests:
-                self.get_request(new=False).test()
-            else:
-                Channel._bot_scheduler.remove_job(f'{self.channel_tg_id}')
-                # self.stop_auto_approve()
-                break
-
     # async def auto_approve(self, min_count: int, max_count: int):
     #     while True:
     #
@@ -88,23 +79,43 @@ class Channel:
     #         await asyncio.sleep(60)
     #         Channel._bot_scheduler.remove_job(job_id=f'timer_{self.channel_tg_id}')
 
+    @property
+    def check_auto(self) -> bool:
+        return bool(self._bot_scheduler.get_job(f'{self.channel_tg_id}'))
+
+    def _stop_job(self):
+        self._bot_scheduler.remove_job(job_id=f'{self.channel_tg_id}')
+        self.min_requests, self.max_requests = 0, 0
+
     def start_auto_approve(self, time_delta: tuple[int, int]):
-        Channel._bot_scheduler.add_job(
+        self.min_requests, self.max_requests = time_delta
+        self._bot_scheduler.add_job(
             func=self.test_approve,
             id=f'{self.channel_tg_id}',
             trigger='interval',
             seconds=60,
-            args=[time_delta],
         )
-        if not Channel._bot_scheduler.running:
-            Channel._bot_scheduler.start()
+        if not self._bot_scheduler.running:
+            self._bot_scheduler.start()
 
     def stop_auto_approve(self):
-        if Channel._bot_scheduler.get_job(job_id=f'{self.channel_tg_id}'):
-            Channel._bot_scheduler.remove_job(job_id=f'{self.channel_tg_id}')
+        if self.check_auto:
+            self._stop_job()
         # Channel._bot_scheduler.remove_job(job_id=f'timer_{self.channel_tg_id}')
-        if not Channel._bot_scheduler.get_jobs():
-            Channel._bot_scheduler.shutdown()
+        if not self._bot_scheduler.get_jobs():
+            self._bot_scheduler.shutdown()
+
+    async def test_approve(self):
+        requests = randint(self.min_requests, self.max_requests)
+        for _ in range(requests):
+            time_pause = 60 // requests - 1
+            await asyncio.sleep(time_pause)
+            if self.requests:
+                self.get_request(new=False).test()
+            else:
+                self._stop_job()
+                # self.stop_auto_approve()
+                break
 
 
 class Admin:

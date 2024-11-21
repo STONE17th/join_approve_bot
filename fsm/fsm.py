@@ -20,85 +20,87 @@ async def select_channel(callback: CallbackQuery, callback_data: RequestChannel,
         admin_tg_id=callback_data.admin_tg_id,
         channel_tg_id=callback_data.channel_tg_id
     )
-    print(admin_user.channels)
-    print(callback_data.channel_tg_id)
-    amount_requests = len(admin_user.channels[callback_data.channel_tg_id].requests)
+    channel = admin_user.channels[callback_data.channel_tg_id]
+    amount_requests = len(channel.requests)
+    msg = f'''В этом канале {amount_requests} непринятых заявок
+        Каких пользователей будем добавлять?
+
+        Автоматический прием заявок {'включен' if channel.check_auto else 'отключен'}'''
+    msg += f'От {channel.min_requests} до {channel.max_requests} в час' if channel.check_auto else ''
     await bot.edit_message_text(
-        f'В этом канале {amount_requests} непринятых заявок\nКаких пользователей будем добавлять?',
+        text=msg,
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
-        reply_markup=inline_keyboards.kb_new_or_old()
+        reply_markup=inline_keyboards.kb_new_or_old(channel)
     )
 
-
-@router.callback_query(CallbackState.channel_tg_id, NewOrOld.filter(F.button == 'new_old'))
-async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld, state: FSMContext, bot: Bot) -> None:
-    if callback_data.value == 'new':
-        msg_users = 'новых'
-    elif callback_data.value == 'old':
-        msg_users = 'старых'
-    else:
-        msg_users = 'рандомных'
-    await state.update_data(index=msg_users, amount_message_id=callback.message.message_id)
-    user_data = await state.get_data()
-    await bot.edit_message_text(
-        f'Сколько будем {msg_users} добавлять?',
-        chat_id=callback.message.chat.id,
-        message_id=callback.message.message_id,
-        reply_markup=inline_keyboards.back_button(
-            user_data['admin_tg_id'],
-            user_data['channel_tg_id'],
-            'select_channel',
-        )
-    )
-    await state.set_state(CallbackState.group)
-
-
-@router.message(CallbackState.group)
-async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
-    data = await state.get_data()
-    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-    if message.text.isdigit():
-        await state.update_data(amount=int(message.text))
-        await state.set_state(CallbackState.confirm)
+    @router.callback_query(CallbackState.channel_tg_id, NewOrOld.filter(F.button == 'new_old'))
+    async def new_or_old_selection(callback: CallbackQuery, callback_data: NewOrOld, state: FSMContext,
+                                   bot: Bot) -> None:
+        if callback_data.value == 'new':
+            msg_users = 'новых'
+        elif callback_data.value == 'old':
+            msg_users = 'старых'
+        else:
+            msg_users = 'рандомных'
+        await state.update_data(index=msg_users, amount_message_id=callback.message.message_id)
+        user_data = await state.get_data()
         await bot.edit_message_text(
-            f'Добавить {message.text} {data["index"]} заявок?',
-            chat_id=message.chat.id,
-            message_id=data['amount_message_id'],
-            reply_markup=inline_keyboards.kb_confirm(
-                channel_tg_id=data['channel_tg_id'],
-                admin_tg_id=data['admin_tg_id'],
-            ),
-        )
-    else:
-        await bot.edit_message_text(
-            f'Ошибка! {message.text}\nТребуется ввести целое положительное число!',
-            chat_id=message.chat.id,
-            message_id=data['amount_message_id'],
+            f'Сколько будем {msg_users} добавлять?',
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
             reply_markup=inline_keyboards.back_button(
-                data['admin_tg_id'],
-                data['channel_tg_id'],
+                user_data['admin_tg_id'],
+                user_data['channel_tg_id'],
                 'select_channel',
             )
         )
+        await state.set_state(CallbackState.group)
 
-
-@router.callback_query(CallbackState.confirm, ConfirmCallback.filter(F.button == 'confirm_join'))
-async def confirm_requests(callback: CallbackQuery, callback_data: ConfirmCallback, state: FSMContext, bot: Bot):
-    if callback_data.value == 'yes':
+    @router.message(CallbackState.group)
+    async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
         data = await state.get_data()
-        index = data['index']
-        amount = data['amount']
-        admin_tg_id = data['admin_tg_id']
-        channel_tg_id = data['channel_tg_id']
-        user_admin = Admin(admin_tg_id)
-        joined_users = 0
-        while amount and (channels := user_admin.channels[channel_tg_id]):
-            if await channels.approve_request(bot, index):
-                joined_users += 1
-            amount -= 1
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        if message.text.isdigit():
+            await state.update_data(amount=int(message.text))
+            await state.set_state(CallbackState.confirm)
+            await bot.edit_message_text(
+                f'Добавить {message.text} {data["index"]} заявок?',
+                chat_id=message.chat.id,
+                message_id=data['amount_message_id'],
+                reply_markup=inline_keyboards.kb_confirm(
+                    channel_tg_id=data['channel_tg_id'],
+                    admin_tg_id=data['admin_tg_id'],
+                ),
+            )
+        else:
+            await bot.edit_message_text(
+                f'Ошибка! {message.text}\nТребуется ввести целое положительное число!',
+                chat_id=message.chat.id,
+                message_id=data['amount_message_id'],
+                reply_markup=inline_keyboards.back_button(
+                    data['admin_tg_id'],
+                    data['channel_tg_id'],
+                    'select_channel',
+                )
+            )
 
-        await callback.answer(f'Done! Добавлено {joined_users} пользователей!', show_alert=True)
-    else:
-        pass
-    await state.clear()
+    @router.callback_query(CallbackState.confirm, ConfirmCallback.filter(F.button == 'confirm_join'))
+    async def confirm_requests(callback: CallbackQuery, callback_data: ConfirmCallback, state: FSMContext, bot: Bot):
+        if callback_data.value == 'yes':
+            data = await state.get_data()
+            index = data['index']
+            amount = data['amount']
+            admin_tg_id = data['admin_tg_id']
+            channel_tg_id = data['channel_tg_id']
+            user_admin = Admin(admin_tg_id)
+            joined_users = 0
+            while amount and (channels := user_admin.channels[channel_tg_id]):
+                if await channels.approve_request(bot, index):
+                    joined_users += 1
+                amount -= 1
+
+            await callback.answer(f'Done! Добавлено {joined_users} пользователей!', show_alert=True)
+        else:
+            pass
+        await state.clear()

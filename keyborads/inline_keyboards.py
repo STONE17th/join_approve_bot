@@ -23,10 +23,12 @@ def kb_channels_list(channels_list: list[tuple[str, Channel]]):
     return keyboard.as_markup()
 
 
-def kb_new_or_old():
+def kb_new_or_old(channel: Channel):
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text='Старые', callback_data=NewOrOld(value='old'))
-    keyboard.button(text='Случайно', callback_data=NewOrOld(value='random'))
+    keyboard.button(
+        text=('OFF' if channel.check_auto else 'ON'),
+        callback_data=NewOrOld(value='random'))
     keyboard.button(text='Новые', callback_data=NewOrOld(value='new'))
     keyboard.button(text='Назад', callback_data=RequestChannel(target='main_menu'))
     keyboard.adjust(3, 1)

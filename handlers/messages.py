@@ -1,6 +1,6 @@
 from aiogram import Bot, F, Router
 from aiogram.types import Message
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from psycopg2.errors import UniqueViolation
 
 from classes.classes import Admin, Channel
@@ -57,19 +57,25 @@ async def new_request(message: Message, bot: Bot):
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
     min_count, max_count = map(int, message.text.split()[1:])
-    admin.channels[0].start_auto_approve((min_count, max_count))
+    list(admin.channels.values())[0].start_auto_approve((min_count, max_count))
     print('Запущен Таймер')
 
 
 @router.message(Command('stop'))
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
-    admin.channels[0].stop_auto_approve()
+    list(admin.channels.values())[0].stop_auto_approve()
     print('Таймер остановлен')
 
 
 @router.message(Command('lst'))
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
-    print(admin.channels[0]._bot_scheduler.get_jobs())
-    print(admin.channels[0]._bot_scheduler.running)
+    print(list(admin.channels.values())[0]._bot_scheduler.get_jobs())
+    print(list(admin.channels.values())[0]._bot_scheduler.running)
+
+@router.message(Command('tst'))
+async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
+    print(command.args)
+    print(command)
+    print(command)
