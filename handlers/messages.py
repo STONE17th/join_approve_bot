@@ -3,6 +3,8 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
 from psycopg2.errors import UniqueViolation
 
+from datetime import datetime
+
 from classes.classes import Admin, Channel
 from database.data_base import DataBase
 from keyborads import inline_keyboards
@@ -47,8 +49,10 @@ async def catch_forward_message(message: Message, bot: Bot):
 
 @router.chat_join_request()
 async def new_request(message: Message, bot: Bot):
+    date_created = datetime.now()
+    print(date_created)
     try:
-        DataBase().add_request(message.chat.id, message.from_user.id)
+        DataBase().add_request(message.chat.id, message.from_user.id, date_created)
     except UniqueViolation:
         pass
 
@@ -73,6 +77,7 @@ async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
     print(list(admin.channels.values())[0]._bot_scheduler.get_jobs())
     print(list(admin.channels.values())[0]._bot_scheduler.running)
+
 
 @router.message(Command('tst'))
 async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
