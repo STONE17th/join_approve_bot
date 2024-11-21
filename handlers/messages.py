@@ -50,7 +50,6 @@ async def catch_forward_message(message: Message, bot: Bot):
 @router.chat_join_request()
 async def new_request(message: Message, bot: Bot):
     date_created = datetime.now()
-    print(date_created)
     try:
         DataBase().add_request(message.chat.id, message.from_user.id, date_created)
     except UniqueViolation:
