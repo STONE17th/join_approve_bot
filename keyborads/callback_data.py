@@ -2,7 +2,7 @@ from aiogram.filters.callback_data import CallbackData
 
 
 class NewOrOld(CallbackData, prefix='NOO'):
-    button: str = 'new_old'
+    button: str = 'select_option'
     value: str = 'None'
 
 

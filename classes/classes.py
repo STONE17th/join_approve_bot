@@ -10,14 +10,14 @@ from database.data_base import DataBase
 
 
 class Request:
-    db = DataBase()
+    _db = DataBase()
 
     def __init__(self, channel_tg_id: int, request_tg_id: int):
         self.channel_tg_id = channel_tg_id
         self.request_tg_id = request_tg_id
 
     async def approve(self, bot: Bot):
-        Request.db.delete_request(self.channel_tg_id, self.request_tg_id)
+        self._db.delete_request(self.channel_tg_id, self.request_tg_id)
         try:
             await bot.approve_chat_join_request(
                 chat_id=self.channel_tg_id,
@@ -25,12 +25,12 @@ class Request:
             )
             return True
         except Exception as e:
-            print(f'Не удалось добавить {self.request_tg_id}')
+            # print(f'Не удалось добавить {self.request_tg_id}')
             return False
 
     def test(self):
-        print(self.request_tg_id)
-        Request.db.delete_request(self.channel_tg_id, self.request_tg_id)
+        # print(self.request_tg_id)
+        Request._db.delete_request(self.channel_tg_id, self.request_tg_id)
 
 
 class Channel:

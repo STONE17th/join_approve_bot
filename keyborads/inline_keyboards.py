@@ -9,7 +9,7 @@ def kb_channels_list(channels_list: list[tuple[str, Channel]]):
     keyboard = InlineKeyboardBuilder()
     for title, channel in channels_list:
         keyboard.button(
-            text=title,
+            text=f'{title}: {len(channel.requests)}',
             callback_data=RequestChannel(
                 target='select_channel',
                 admin_tg_id=channel.admin_tg_id,
@@ -23,12 +23,12 @@ def kb_channels_list(channels_list: list[tuple[str, Channel]]):
     return keyboard.as_markup()
 
 
-def kb_new_or_old(channel: Channel):
+def kb_select_option(channel: Channel):
     keyboard = InlineKeyboardBuilder()
     keyboard.button(text='Старые', callback_data=NewOrOld(value='old'))
     keyboard.button(
         text=('OFF' if channel.check_auto else 'ON'),
-        callback_data=NewOrOld(value='random'))
+        callback_data=NewOrOld(value='auto'))
     keyboard.button(text='Новые', callback_data=NewOrOld(value='new'))
     keyboard.button(text='Назад', callback_data=RequestChannel(target='main_menu'))
     keyboard.adjust(3, 1)
@@ -37,14 +37,22 @@ def kb_new_or_old(channel: Channel):
 
 def kb_confirm(channel_tg_id: int, admin_tg_id: int):
     keyboard = InlineKeyboardBuilder()
-    print(channel_tg_id)
-    keyboard.button(text='Да', callback_data=ConfirmCallback(value='yes'))
-    keyboard.button(text='Назад', callback_data=RequestChannel(
-        target='select_channel',
-        admin_tg_id=admin_tg_id,
-        channel_tg_id=channel_tg_id,
-    ),
-                    )
+    keyboard.button(
+        text='Да',
+        callback_data=RequestChannel(
+            target='confirm_approve',
+            admin_tg_id=admin_tg_id,
+            channel_tg_id=channel_tg_id,
+        ),
+    )
+    keyboard.button(
+        text='Назад',
+        callback_data=RequestChannel(
+            target='select_channel',
+            admin_tg_id=admin_tg_id,
+            channel_tg_id=channel_tg_id,
+        ),
+    )
     keyboard.button(text='Главное меню', callback_data=RequestChannel(target='main_menu'))
     keyboard.adjust(2, 1)
     return keyboard.as_markup()

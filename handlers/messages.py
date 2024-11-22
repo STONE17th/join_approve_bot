@@ -1,6 +1,7 @@
 from aiogram import Bot, F, Router
 from aiogram.types import Message
 from aiogram.filters import Command, CommandObject
+from aiogram.utils.formatting import as_list, as_marked_section, Text
 from psycopg2.errors import UniqueViolation
 
 from datetime import datetime
@@ -17,18 +18,27 @@ router = Router()
 @router.message(Command('start'))
 async def command_start(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
-    message_text = f'{message.from_user.full_name}, '
+    message_title = f'{message.from_user.full_name}, приветствую!\n\nВыбери канал для управления:'
+    # message_list = []
     channels_list = []
     if admin.channels:
-        message_text += 'это твои каналы:\n'
         for channel in admin.channels.values():
             channel_title = await channel.title(bot)
             channels_list.append((channel_title, channel))
-            message_text += f'{channel_title}: {len(channel.requests)} заявок\n'
+            # message_list.append(f'{channel_title}: {len(channel.requests)} заявок')
+        message_title += ''
     else:
-        message_text += 'добавьте бота в канал для управления'
+        message_title += '\nДобавьте бота в канал для управления'
+    # caption = as_list(
+    #     as_marked_section(
+    #         message_title,
+    #         *message_list,
+    #         marker='\t ➫ '
+    #     )
+    # )
     await message.answer(
-        text=message_text,
+        # **caption.as_kwargs(),
+        text=message_title,
         reply_markup=inline_keyboards.kb_channels_list(channels_list)
     )
 
