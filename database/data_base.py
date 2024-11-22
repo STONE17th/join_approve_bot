@@ -1,3 +1,5 @@
+from typing import List, Tuple, Any
+
 import psycopg2
 import os
 from datetime import datetime
@@ -93,7 +95,7 @@ class DataBase:
         sql = '''SELECT channel_tg_id FROM admins WHERE admin_tg_id=%s'''
         return self.execute(sql, (admin_tg_id,), fetchall=True)
 
-    def load_requests(self, channel_tg_id: int) -> tuple[int, ...]:
+    def load_requests(self, channel_tg_id: int) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
         sql = '''SELECT request_tg_id FROM requests WHERE channel_tg_id=%s'''
         return self.execute(sql, (channel_tg_id,), fetchall=True)
 

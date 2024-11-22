@@ -25,7 +25,6 @@ class Request:
             )
             return True
         except Exception as e:
-            # print(f'Не удалось добавить {self.request_tg_id}')
             return False
 
     def test(self):
@@ -52,7 +51,7 @@ class Channel:
     @property
     def requests(self):
         if self._requests is None:
-            self._requests = [Request(self.channel_tg_id, request_tg_id)
+            self._requests = [Request(self.channel_tg_id, request_tg_id[0])
                               for request_tg_id in self.db.load_requests(self.channel_tg_id)]
         return self._requests
 
