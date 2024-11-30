@@ -90,6 +90,6 @@ async def test_scheduler(message: Message, bot: Bot):
 
 @router.message(Command('tst'))
 async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
-    print(command.args)
-    print(command)
-    print(command)
+    admin = Admin(message.from_user.id)
+    print(admin.limits.min)
+    print(admin.limits.max)

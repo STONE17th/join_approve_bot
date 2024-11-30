@@ -6,3 +6,4 @@ class CallbackState(StatesGroup):
     group = State()
     amount = State()
     confirm = State()
+    auto_stop = State()

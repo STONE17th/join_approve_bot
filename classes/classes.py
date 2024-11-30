@@ -44,9 +44,7 @@ class Channel:
         self.channel_tg_id = channel_tg_id
         self.admin_tg_id = admin_tg_id
         self._requests = None
-        self.min_requests = 0
-        self.max_requests = 0
-        # self.scheduler: AsyncIOScheduler | None = None
+        self.limits = Limits(admin_tg_id, channel_tg_id)
 
     @property
     def requests(self):
@@ -54,6 +52,10 @@ class Channel:
             self._requests = [Request(self.channel_tg_id, request_tg_id[0])
                               for request_tg_id in self.db.load_requests(self.channel_tg_id)]
         return self._requests
+
+    def set_limits(self, values: tuple[int, int]):
+        print(values)
+        DataBase().set_admin_limits(self.admin_tg_id, self.channel_tg_id, *values)
 
     async def title(self, bot: Bot):
         channel = await bot.get_chat(self.channel_tg_id)
@@ -84,12 +86,13 @@ class Channel:
 
     def _stop_job(self):
         self._bot_scheduler.remove_job(job_id=f'{self.channel_tg_id}')
-        self.min_requests, self.max_requests = 0, 0
+        # self.min_requests, self.max_requests = 0, 0
 
-    def start_auto_approve(self, time_delta: tuple[int, int]):
-        self.min_requests, self.max_requests = time_delta
+    def start_auto_approve(self, time_delta: tuple[int, int], bot: Bot):
+        self.limits.min, self.limits.max = time_delta
         self._bot_scheduler.add_job(
-            func=self.test_approve,
+            func=self.auto_approve,
+            args=(bot,),
             id=f'{self.channel_tg_id}',
             trigger='interval',
             seconds=60,
@@ -100,20 +103,18 @@ class Channel:
     def stop_auto_approve(self):
         if self.check_auto:
             self._stop_job()
-        # Channel._bot_scheduler.remove_job(job_id=f'timer_{self.channel_tg_id}')
         if not self._bot_scheduler.get_jobs():
             self._bot_scheduler.shutdown()
 
-    async def test_approve(self):
-        requests = randint(self.min_requests, self.max_requests)
+    async def auto_approve(self, bot: Bot):
+        requests = randint(self.limits.min, self.limits.max)
+        time_pause = 60 // requests - 1
         for _ in range(requests):
-            time_pause = 60 // requests - 1
             await asyncio.sleep(time_pause)
             if self.requests:
-                self.get_request(new=False).test()
+                await self.get_request(new=False).approve(bot)
             else:
                 self._stop_job()
-                # self.stop_auto_approve()
                 break
 
 
@@ -128,3 +129,10 @@ class Admin:
     def channels(self):
         return {int(channel_tg_id[0]): Channel(channel_tg_id[0], self.admin_tg_id)
                 for channel_tg_id in self.db.load_channels(self.admin_tg_id)}
+
+
+class Limits:
+    def __init__(self, admin_tg_id: int, channel_tg_id: int):
+        limits = DataBase().get_admin_limits(admin_tg_id, channel_tg_id)
+        self.min = limits[0]
+        self.max = limits[1]

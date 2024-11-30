@@ -4,6 +4,7 @@ import psycopg2
 import os
 from datetime import datetime
 
+
 class DataBase:
     _instance = None
     db_path = 'database/sqlite3.db'
@@ -46,23 +47,23 @@ class DataBase:
     def create_tables(self):
         sqls = ['''CREATE TABLE IF NOT EXISTS admins(
                 entry_id        SERIAL PRIMARY KEY,
-                channel_tg_id   NUMERIC,
-                admin_tg_id     NUMERIC,
-                min_requests    NUMERIC,
-                max_requests    NUMERIC,
+                channel_tg_id   INTEGER,
+                admin_tg_id     INTEGER,
+                min_requests    INTEGER,
+                max_requests    INTEGER,
                 UNIQUE (channel_tg_id, admin_tg_id)                
                 )''',
                 '''CREATE TABLE IF NOT EXISTS requests(
                 entry_id        SERIAL PRIMARY KEY,
-                channel_tg_id   NUMERIC,
-                request_tg_id   NUMERIC,
+                channel_tg_id   INTEGER,
+                request_tg_id   INTEGER,
                 date_created    TIMESTAMP,
                 UNIQUE (channel_tg_id, request_tg_id)
                 )''',
                 '''CREATE TABLE IF NOT EXISTS approved_requests(
                 entry_id        SERIAL PRIMARY KEY,
-                channel_tg_id   NUMERIC,
-                request_tg_id   NUMERIC,
+                channel_tg_id   INTEGER,
+                request_tg_id   INTEGER,
                 date_approved   TIMESTAMP,
                 UNIQUE (channel_tg_id, request_tg_id)
                 )''',
@@ -98,6 +99,14 @@ class DataBase:
     def load_requests(self, channel_tg_id: int) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
         sql = '''SELECT request_tg_id FROM requests WHERE channel_tg_id=%s'''
         return self.execute(sql, (channel_tg_id,), fetchall=True)
+
+    def get_admin_limits(self, admin_tg_id: int, channel_tg_id: int):
+        sql = '''SELECT min_requests, max_requests FROM admins WHERE admin_tg_id=%s AND channel_tg_id=%s'''
+        return self.execute(sql, (admin_tg_id, channel_tg_id), fetchone=True)
+
+    def set_admin_limits(self, admin_tg_id: int, channel_tg_id: int, min_value: int, max_value: int):
+        sql = '''UPDATE admins SET min_requests=%s, max_requests=%s WHERE admin_tg_id=%s AND channel_tg_id=%s'''
+        return self.execute(sql, (min_value, max_value, admin_tg_id, channel_tg_id), commit=True)
 
     # def load_admin_channels(self, admin_tg_id: int):
     #     sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=%s'''
