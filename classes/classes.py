@@ -25,8 +25,10 @@ class Request:
                 chat_id=self.channel_tg_id,
                 user_id=self.request_tg_id,
             )
+            print(f'Принят {self.request_tg_id} в {self.channel_tg_id}')
             return True
         except Exception as e:
+            print(f'Не принят {self.request_tg_id} в {self.channel_tg_id}')
             return False
 
     def __eq__(self, other):
