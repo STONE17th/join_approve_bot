@@ -12,38 +12,28 @@ from keyborads import inline_keyboards
 
 from classes.scheduler import bot_scheduler
 
-router = Router()
+commands_router = Router()
 
 
-@router.message(Command('start'))
+@commands_router.message(Command('start'))
 async def command_start(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
-    message_title = f'{message.from_user.full_name}, приветствую!\n\nВыбери канал для управления:'
-    # message_list = []
-    channels_list = []
+    message_rows = [f'{message.from_user.full_name}, приветствую тебя!']
     if admin.channels:
-        for channel in admin.channels.values():
-            channel_title = await channel.title(bot)
-            channels_list.append((channel_title, channel))
-            # message_list.append(f'{channel_title}: {len(channel.requests)} заявок')
-        message_title += ''
+        message_rows.append('Выбери канал для управления')
     else:
-        message_title += '\nДобавьте бота в канал для управления'
-    # caption = as_list(
-    #     as_marked_section(
-    #         message_title,
-    #         *message_list,
-    #         marker='\t ➫ '
-    #     )
-    # )
+        message_rows.append('Добавь бота в канал для управления')
+    caption = as_list(
+        *message_rows,
+    )
+    keyboard = await inline_keyboards.kb_channels_list(admin, bot)
     await message.answer(
-        # **caption.as_kwargs(),
-        text=message_title,
-        reply_markup=inline_keyboards.kb_channels_list(channels_list)
+        **caption.as_kwargs(),
+        reply_markup=keyboard,
     )
 
 
-@router.message(F.forward_origin)
+@commands_router.message(F.forward_origin)
 async def catch_forward_message(message: Message, bot: Bot):
     try:
         DataBase().add_channel(
@@ -57,7 +47,7 @@ async def catch_forward_message(message: Message, bot: Bot):
     await bot.send_message(message.chat.id, message_text)
 
 
-@router.chat_join_request()
+@commands_router.chat_join_request()
 async def new_request(message: Message, bot: Bot):
     date_created = datetime.now()
     try:
@@ -66,7 +56,7 @@ async def new_request(message: Message, bot: Bot):
         pass
 
 
-@router.message(Command('str'))
+@commands_router.message(Command('str'))
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
     min_count, max_count = map(int, message.text.split()[1:])
@@ -74,22 +64,31 @@ async def test_scheduler(message: Message, bot: Bot):
     print('Запущен Таймер')
 
 
-@router.message(Command('stop'))
+@commands_router.message(Command('stop'))
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
     list(admin.channels.values())[0].stop_auto_approve()
     print('Таймер остановлен')
 
 
-@router.message(Command('lst'))
+@commands_router.message(Command('lst'))
 async def test_scheduler(message: Message, bot: Bot):
     admin = Admin(message.from_user.id)
     print(list(admin.channels.values())[0]._bot_scheduler.get_jobs())
     print(list(admin.channels.values())[0]._bot_scheduler.running)
 
 
-@router.message(Command('tst'))
+@commands_router.message(Command('tst'))
 async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
-    admin = Admin(message.from_user.id)
-    print(admin.limits.min)
-    print(admin.limits.max)
+    admin = Admin(84777589)
+    print(admin.channels)
+    channel = admin.channels[-1002131989863].requests
+    sorted_channel = sorted(channel, key=lambda x: x.creation_date)
+    count = 0
+    for i in range(len(channel)):
+        # print(channel[i])
+        print(f'{str(channel[i]):>15} {str(sorted_channel[i]):<15}')
+        if channel[i] == sorted_channel[i]:
+            count += 1
+    print(len(channel))
+    print(count)

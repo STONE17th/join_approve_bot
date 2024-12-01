@@ -92,12 +92,12 @@ class DataBase:
     #     sql = f'''SELECT count(*) FROM table_{channel_tg_id}'''
     #     return self.execute(sql, fetchall=True)
 
-    def load_channels(self, admin_tg_id: int, all: bool = True) -> tuple[tuple[int], ...]:
+    def load_channels(self, admin_tg_id: int) -> tuple[tuple[int], ...]:
         sql = '''SELECT channel_tg_id FROM admins WHERE admin_tg_id=%s'''
         return self.execute(sql, (admin_tg_id,), fetchall=True)
 
     def load_requests(self, channel_tg_id: int) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
-        sql = '''SELECT request_tg_id FROM requests WHERE channel_tg_id=%s'''
+        sql = '''SELECT request_tg_id, date_created FROM requests WHERE channel_tg_id=%s'''
         return self.execute(sql, (channel_tg_id,), fetchall=True)
 
     def get_admin_limits(self, admin_tg_id: int, channel_tg_id: int):

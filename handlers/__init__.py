@@ -1,7 +1,14 @@
+from aiogram import Router
+
 from .callbacks import router as callbacks_router
-from .messages import router as messages_router
+from .commands import commands_router
+
+main_router = Router()
+main_router.include_routers(
+    commands_router,
+    callbacks_router,
+)
 
 __all__ = [
-    'callbacks_router',
-    'messages_router',
+    'main_router',
 ]

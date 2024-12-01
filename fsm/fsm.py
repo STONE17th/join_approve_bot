@@ -6,27 +6,24 @@ from aiogram.utils.formatting import as_list, Bold
 from classes import Admin
 from database.data_base import DataBase
 from .states import CallbackState
-from keyborads.callback_data import RequestChannel
+from keyborads.callback_data import CustomCallBack
 from keyborads import inline_keyboards
 
 router = Router()
 
 
-# db = DataBase()
-
-
-@router.callback_query(RequestChannel.filter(F.target == 'select_channel'))
-async def select_channel(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot) -> None:
-    admin_user = Admin(callback.from_user.id)
+@router.callback_query(CustomCallBack.filter(F.target_handler == 'select_channel'))
+async def select_channel(callback: CallbackQuery, callback_data: CustomCallBack, state: FSMContext, bot: Bot) -> None:
     current_state = await state.get_state()
     if not current_state:
+        admin = Admin(callback.from_user.id)
         await state.update_data(
-            admin_tg_id=callback.from_user.id,
-            channel_tg_id=callback_data.channel_tg_id
+            admin=admin,
+            channel_tg_id=callback_data.channel_tg_id,
+            channel=admin.channels[callback_data.channel_tg_id],
         )
     data = await state.get_data()
-    channel_tg_id = data['channel_tg_id']
-    channel = admin_user.channels[channel_tg_id]
+    channel = data['channel']
     auto_approve = channel.check_auto
     message_list = [
         f'Непринятых заявок в этом канале: {len(channel.requests)}',
@@ -47,21 +44,22 @@ async def select_channel(callback: CallbackQuery, callback_data: RequestChannel,
         await state.set_state(CallbackState.channel_tg_id)
 
 
-@router.callback_query(CallbackState.channel_tg_id, RequestChannel.filter(F.target == 'select_option'))
-async def select_group(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot) -> None:
+@router.callback_query(CallbackState.channel_tg_id, CustomCallBack.filter(F.target_handler == 'select_option'))
+async def select_group(callback: CallbackQuery, callback_data: CustomCallBack, state: FSMContext, bot: Bot) -> None:
     message_text = {
         'new': 'Сколько новых заявок будем принимать?',
         'old': 'Сколько старых заявок будем принимать?',
         'auto': 'Сколько заявок будем принимать в час?\nВведите два целых числа'
     }
-    await state.update_data(index=callback_data.value, amount_message_id=callback.message.message_id)
+    await state.update_data(
+        requests=callback_data.requests,
+        amount_message_id=callback.message.message_id)
     user_data = await state.get_data()
     await bot.edit_message_text(
-        text=message_text[callback_data.value],
+        text=message_text[callback_data.requests],
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
         reply_markup=inline_keyboards.back_button(
-            user_data['admin_tg_id'],
             user_data['channel_tg_id'],
             'select_channel',
         )
@@ -69,23 +67,16 @@ async def select_group(callback: CallbackQuery, callback_data: RequestChannel, s
     await state.set_state(CallbackState.group)
 
 
-@router.callback_query(CallbackState.auto_stop, RequestChannel.filter(F.target == 'select_option'))
-async def stop_auto_approve(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext,
+@router.callback_query(CallbackState.auto_stop, CustomCallBack.filter(F.target_handler == 'select_option'))
+async def stop_auto_approve(callback: CallbackQuery, callback_data: CustomCallBack, state: FSMContext,
                             bot: Bot) -> None:
-    admin_user = Admin(callback.from_user.id)
     data = await state.get_data()
-    channel_tg_id = data['channel_tg_id']
-    # await state.update_data(
-    #     admin_tg_id=callback_data.admin_tg_id,
-    #     channel_tg_id=callback_data.channel_tg_id
-    # )
-    channel = admin_user.channels[channel_tg_id]
+    channel = data['channel']
     channel.stop_auto_approve()
     await callback.answer(
         text=f'Done!\nАвтоматический прием пользователей остановлен!',
         show_alert=True,
     )
-    # await state.clear()
     await select_channel(callback, callback_data, state, bot)
 
 
@@ -97,25 +88,26 @@ async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
         'auto': 'Включить',
     }
     data = await state.get_data()
-    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    await bot.delete_message(
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+    )
     input_value = message.text.split()
     keyboard = inline_keyboards.back_button(
-        data['admin_tg_id'],
-        data['channel_tg_id'],
-        'select_channel',
+        channel_tg_id=data['channel_tg_id'],
+        target='select_channel',
     )
     correct_keyboard = inline_keyboards.kb_confirm(
         channel_tg_id=data['channel_tg_id'],
-        admin_tg_id=data['admin_tg_id'],
     )
-    if data['index'] in ('old', 'new'):
+    if data['requests'] in ('old', 'new'):
         message_text = f'‼️Ошибка‼️\nВы ввели: {message.text}\nТребуется ввести целое число!'
         if len(input_value) == 1:
             input_value = input_value[0]
             if input_value.isdigit() and int(input_value) > 0:
                 await state.set_state(CallbackState.confirm)
                 await state.update_data(amount=int(input_value))
-                message_text = f'Принять {input_value} {requests[data["index"]]} заявок?'
+                message_text = f'Принять {input_value} {requests[data["requests"]]} заявок?'
                 keyboard = correct_keyboard
     else:
         message_text = f'‼️Ошибка‼️\nВы ввели: {message.text}\nТребуется ввести два целых числа!'
@@ -138,18 +130,15 @@ async def amount_users(message: Message, state: FSMContext, bot: Bot) -> None:
     )
 
 
-@router.callback_query(CallbackState.confirm, RequestChannel.filter(F.target == 'confirm_approve'))
-async def confirm_requests(callback: CallbackQuery, callback_data: RequestChannel, state: FSMContext, bot: Bot):
+@router.callback_query(CallbackState.confirm, CustomCallBack.filter(F.target_handler == 'confirm_approve'))
+async def confirm_requests(callback: CallbackQuery, callback_data: CustomCallBack, state: FSMContext, bot: Bot):
     data = await state.get_data()
-    user_admin = Admin(data['admin_tg_id'])
-    channel = user_admin.channels[data['channel_tg_id']]
+    channel = data['channel']
     amount = data['amount']
-    if data['index'] in ('old', 'new'):
-
+    if data['requests'] in ('old', 'new'):
         joined_users = 0
-
         while amount and channel.requests:
-            if await channel.get_request(data['index'] == 'new').approve(bot):
+            if await channel.get_request(data['requests'] == 'new').approve(bot):
                 joined_users += 1
             amount -= 1
         await callback.answer(f'Done!\nДобавлено {joined_users} пользователей!', show_alert=True)

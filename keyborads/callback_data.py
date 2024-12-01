@@ -6,13 +6,12 @@ from aiogram.filters.callback_data import CallbackData
 #     value: str = 'None'
 
 
-class RequestChannel(CallbackData, prefix='RC'):
-    target: str
+class CustomCallBack(CallbackData, prefix='RC'):
+    target_handler: str
     value: str = 'None'
-    approve: str = 'new'
-    admin_tg_id: int = 0
+    requests: str = 'new'
     channel_tg_id: int = 0
-    user_tg_id: int = 0
+    request_tg_id: int = 0
 
 
 # class RequestsGroup(CallbackData, prefix='RG'):

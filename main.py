@@ -1,18 +1,17 @@
 import os
 import asyncio
 
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher
 
 from database.data_base import DataBase
 from fsm import router as fsm_router
-import handlers
+from handlers import main_router
 
 bot = Bot(os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 
 dp.include_routers(
-    handlers.callbacks_router,
-    handlers.messages_router,
+    main_router,
     fsm_router,
 )
 
@@ -23,8 +22,9 @@ def on_start():
     try:
         DataBase().create_tables()
         print('OK!')
-    except:
+    except Exception as e:
         print('Failure!!')
+        print(e)
 
 
 def on_shutdown():
