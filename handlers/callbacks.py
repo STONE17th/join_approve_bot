@@ -21,7 +21,7 @@ async def main_menu(callback: CallbackQuery, state: FSMContext, bot: Bot):
         f'{callback.from_user.full_name}, приветствую тебя!',
         'Выбери канал для управления',
     )
-    keyboard = await inline_keyboards.kb_channels_list(admin, bot)
+    keyboard = inline_keyboards.kb_channels_list(admin)
     await bot.edit_message_text(
         **caption.as_kwargs(),
         chat_id=callback.from_user.id,

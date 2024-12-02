@@ -18,18 +18,21 @@ class DataBase:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    # @staticmethod
-    def execute(self, sql: str, parameters: tuple = tuple(),
+    @classmethod
+    def execute(cls, sql: str | list, parameters: tuple = tuple(),
                 fetchone=False, fetchall=False, commit=False):
         connection = psycopg2.connect(
-            user=self._user_name,
-            password=self._password,
-            dbname=self._db_name,
-            host=self._ip_address,
+            user=cls._user_name,
+            password=cls._password,
+            dbname=cls._db_name,
+            host=cls._ip_address,
         )
         db_cursor = connection.cursor()
         data = None
-        db_cursor.execute(sql, parameters)
+        if isinstance(sql, str):
+            sql = [sql]
+        for request in sql:
+            db_cursor.execute(request, parameters)
         if commit:
             connection.commit()
         if fetchone:
@@ -47,8 +50,9 @@ class DataBase:
     def create_tables(self):
         sqls = ['''CREATE TABLE IF NOT EXISTS admins(
                 entry_id        SERIAL PRIMARY KEY,
-                channel_tg_id   INTEGER,
                 admin_tg_id     INTEGER,
+                channel_tg_id   INTEGER,
+                channel_title   CHARACTER VARYING(500),
                 min_requests    INTEGER,
                 max_requests    INTEGER,
                 UNIQUE (channel_tg_id, admin_tg_id)                
@@ -57,14 +61,14 @@ class DataBase:
                 entry_id        SERIAL PRIMARY KEY,
                 channel_tg_id   INTEGER,
                 request_tg_id   INTEGER,
-                date_created    TIMESTAMP,
+                creation_date   TIMESTAMP,
                 UNIQUE (channel_tg_id, request_tg_id)
                 )''',
                 '''CREATE TABLE IF NOT EXISTS approved_requests(
                 entry_id        SERIAL PRIMARY KEY,
                 channel_tg_id   INTEGER,
                 request_tg_id   INTEGER,
-                date_approved   TIMESTAMP,
+                approve_date    TIMESTAMP,
                 UNIQUE (channel_tg_id, request_tg_id)
                 )''',
                 ]
@@ -79,34 +83,58 @@ class DataBase:
                 '''
         self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)
 
-    def add_request(self, channel_tg_id: int, request_tg_id: int, date_created: datetime):
+    @classmethod
+    def refresh_channels(cls, channel_title: str, admin_tg_id: int, channel_tg_id: int):
+        sql = '''UPDATE admins SET channel_title=%s WHERE admin_tg_id=%s AND channel_tg_id=%s'''
+        return cls.execute(sql, (channel_title, admin_tg_id, channel_tg_id), commit=True)
+
+    @classmethod
+    def add_request(cls, channel_tg_id: int, request_tg_id: int, date_created: datetime):
         sql = '''INSERT INTO requests(
                 channel_tg_id,
                 request_tg_id,
                 date_created)
                 VALUES (%s, %s, %s)
                 '''
-        self.execute(sql, (channel_tg_id, request_tg_id, date_created), commit=True)
+        cls.execute(sql, (channel_tg_id, request_tg_id, date_created), commit=True)
 
     # def channel_length(self, channel_tg_id: int) -> int:
     #     sql = f'''SELECT count(*) FROM table_{channel_tg_id}'''
     #     return self.execute(sql, fetchall=True)
+    @classmethod
+    def get_channel(cls, admin_tg_id: int, channel_tg_id) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
+        sql = '''SELECT
+                admin_tg_id,
+                channel_tg_id,
+                channel_title,
+                min_requests,
+                max_requests
+                FROM admins WHERE admin_tg_id=%s AND channel_tg_id=%s'''
+        return cls.execute(sql, (admin_tg_id, channel_tg_id), fetchone=True)
 
-    def load_channels(self, admin_tg_id: int) -> tuple[tuple[int], ...]:
-        sql = '''SELECT channel_tg_id FROM admins WHERE admin_tg_id=%s'''
+    def get_channels(self, admin_tg_id: int) -> tuple[tuple[int], ...]:
+        sql = '''SELECT
+                admin_tg_id,
+                channel_tg_id,
+                channel_title,
+                min_requests,
+                max_requests
+                FROM admins WHERE admin_tg_id=%s'''
         return self.execute(sql, (admin_tg_id,), fetchall=True)
 
-    def load_requests(self, channel_tg_id: int) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
+    @classmethod
+    def load_requests(cls, channel_tg_id: int) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
         sql = '''SELECT request_tg_id, date_created FROM requests WHERE channel_tg_id=%s'''
-        return self.execute(sql, (channel_tg_id,), fetchall=True)
+        return cls.execute(sql, (channel_tg_id,), fetchall=True)
 
     def get_admin_limits(self, admin_tg_id: int, channel_tg_id: int):
         sql = '''SELECT min_requests, max_requests FROM admins WHERE admin_tg_id=%s AND channel_tg_id=%s'''
         return self.execute(sql, (admin_tg_id, channel_tg_id), fetchone=True)
 
-    def set_admin_limits(self, admin_tg_id: int, channel_tg_id: int, min_value: int, max_value: int):
+    @classmethod
+    def set_admin_limits(cls, admin_tg_id: int, channel_tg_id: int, min_value: int, max_value: int):
         sql = '''UPDATE admins SET min_requests=%s, max_requests=%s WHERE admin_tg_id=%s AND channel_tg_id=%s'''
-        return self.execute(sql, (min_value, max_value, admin_tg_id, channel_tg_id), commit=True)
+        return cls.execute(sql, (min_value, max_value, admin_tg_id, channel_tg_id), commit=True)
 
     # def load_admin_channels(self, admin_tg_id: int):
     #     sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=%s'''
@@ -129,10 +157,19 @@ class DataBase:
     #             '''
     #     self.execute(sql, (channel_id, user_id), commit=True)
 
-    def delete_request(self, channel_tg_id: int, request_tg_id: int):
-        sql = 'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s'
-        self.execute(sql, (channel_tg_id, request_tg_id), commit=True)
-
     def delete_channel(self, channel_tg_id: int, admin_tg_id: int):
         sql = 'DELETE FROM admins WHERE channel_tg_id=%s AND admin_tg_id=%s'
         self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)
+
+    @classmethod
+    def approve_request(cls, channel_tg_id: int, request_tg_id: int, approve_date: datetime):
+        sqls = [
+            'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s',
+            'INSERT INTO approved_requests (channel_tg_id, request_tg_id, approve_date) VALUES (%s, %s, %s)',
+        ]
+        cls.execute(sqls, (channel_tg_id, request_tg_id), commit=True)
+
+    @classmethod
+    def delete_request(cls, channel_tg_id: int, request_tg_id: int):
+        sql = 'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s'
+        cls.execute(sql, (channel_tg_id, request_tg_id), commit=True)
