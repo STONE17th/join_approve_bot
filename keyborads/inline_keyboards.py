@@ -1,4 +1,3 @@
-from aiogram import Bot
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from .callback_data import CustomCallBack
@@ -21,7 +20,6 @@ def kb_channels_list(admin: Admin):
             target_handler='help',
         ),
     )
-    # keyboard.adjust(*[1] * len(admin.channels), 1)
     keyboard.adjust(1)
     return keyboard.as_markup()
 
@@ -89,7 +87,6 @@ def back_button():
         text='Назад',
         callback_data=CustomCallBack(
             target_handler='back',
-            # channel_tg_id=channel_tg_id,
         ),
     )
     return keyboard.as_markup()

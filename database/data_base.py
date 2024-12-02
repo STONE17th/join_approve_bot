@@ -98,9 +98,6 @@ class DataBase:
                 '''
         cls.execute(sql, (channel_tg_id, request_tg_id, date_created), commit=True)
 
-    # def channel_length(self, channel_tg_id: int) -> int:
-    #     sql = f'''SELECT count(*) FROM table_{channel_tg_id}'''
-    #     return self.execute(sql, fetchall=True)
     @classmethod
     def get_channel(cls, admin_tg_id: int, channel_tg_id) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
         sql = '''SELECT
@@ -136,38 +133,9 @@ class DataBase:
         sql = '''UPDATE admins SET min_requests=%s, max_requests=%s WHERE admin_tg_id=%s AND channel_tg_id=%s'''
         return cls.execute(sql, (min_value, max_value, admin_tg_id, channel_tg_id), commit=True)
 
-    # def load_admin_channels(self, admin_tg_id: int):
-    #     sql = '''SELECT channel_id, channel_tg_id FROM channels_admins WHERE admin_tg_id=%s'''
-    #     return self.execute(sql, (admin_tg_id,), fetchall=True)
-    #
-    # def load_requests(self, channel_id: int):
-    #     sql = 'SELECT entry_id, user_tg_id FROM users_join_requests WHERE channel_id=?'
-    #     return self.execute(sql, (channel_id,), fetchall=True)
-
-    # def _get_channel_id(self, channel_tg_id: int):
-    #     sql = 'SELECT channel_id FROM channels_admins WHERE channel_tg_id=?'
-    #     return int(self.execute(sql, (channel_tg_id,), fetchone=True)[0])
-
-    # def add_join_request(self, channel_tg_id: int, user_id: int):
-    #     channel_id = self._get_channel_id(channel_tg_id)
-    #     sql = '''INSERT OR IGNORE INTO users_join_requests(
-    #             channel_id,
-    #             user_tg_id)
-    #             VALUES (?, ?)
-    #             '''
-    #     self.execute(sql, (channel_id, user_id), commit=True)
-
     def delete_channel(self, channel_tg_id: int, admin_tg_id: int):
         sql = 'DELETE FROM admins WHERE channel_tg_id=%s AND admin_tg_id=%s'
         self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)
-
-    # @classmethod
-    # def approve_request(cls, channel_tg_id: int, request_tg_id: int, approve_date: datetime):
-    #     sqls = [
-    #         'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s',
-    #         'INSERT INTO approved_requests (channel_tg_id, request_tg_id, approve_date) VALUES (%s, %s, %s)',
-    #     ]
-    #     cls.execute(sqls, (channel_tg_id, request_tg_id), commit=True)
 
     @classmethod
     def delete_request(cls, channel_tg_id: int, request_tg_id: int):

@@ -28,7 +28,3 @@ async def main_menu(callback: CallbackQuery, state: FSMContext, bot: Bot):
         message_id=callback.message.message_id,
         reply_markup=keyboard,
     )
-
-# @router.callback_query(RequestChannel.filter(F.target == 'help'))
-# async def test_button(callback: CallbackQuery, callback_data: TestButton, state: FSMContext, bot: Bot) -> None:
-#     await callback.answer('В разработке', show_alert=True)
