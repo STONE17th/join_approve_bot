@@ -4,9 +4,9 @@ bot_scheduler = AsyncIOScheduler()
 
 
 class Scheduler:
-    instance = None
+    _instance = None
 
     def __new__(cls, *args, **kwargs):
-        if cls.instance is None:
-            cls.instance = AsyncIOScheduler()
-        return cls.instance
+        if cls._instance is None:
+            cls._instance = AsyncIOScheduler()
+        return cls._instance

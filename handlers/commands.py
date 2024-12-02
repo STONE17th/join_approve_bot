@@ -4,6 +4,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.utils.formatting import as_list, as_marked_section, Text
 from psycopg2.errors import UniqueViolation
 
+import asyncio
 from datetime import datetime
 
 from classes.classes import Admin, Channel, Request
@@ -101,3 +102,54 @@ async def refresh_channels(message: Message, bot: Bot):
     for channel_tg_id in admin.channels:
         channel = await bot.get_chat(channel_tg_id)
         DataBase.refresh_channels(channel.title, message.from_user.id, channel_tg_id)
+
+
+async def print_something(message: Message, seconds: int):
+    while True:
+        await asyncio.sleep(seconds)
+        await message.answer(f'Я кайфую тут за {seconds}')
+
+
+@commands_router.message(Command('sleep'))
+async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
+    args = command.args.split()
+    print(args)
+    await Channel.start_task(args[0], int(args[1]))
+
+
+@commands_router.message(Command('unsleep'))
+async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
+    print(command.args)
+    await Channel.stop_task(command.args)
+    # admin = Admin(84777589)
+    # print(admin.channels)
+    # channel = admin.channels[-1002131989863].requests
+    # sorted_channel = sorted(channel, key=lambda x: x.creation_date)
+    # count = 0
+    # for i in range(len(channel)):
+    #     # print(channel[i])
+    #     print(f'{str(channel[i]):>15} {str(sorted_channel[i]):<15}')
+    #     if channel[i] == sorted_channel[i]:
+    #         count += 1
+    # print(len(channel))
+    # print(count)
+#
+#
+# @commands_router.message(Command('unsleep'))
+# async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
+#     tasks = asyncio.get_event_loop()
+#     tasks.set_task_factory()
+#     await message.answer(str(tasks))
+
+# async def main():
+#     task1 = create_task(thread_maintaining_communication(3), name='123')
+#     task2 = create_task(thread_maintaining_communication(5), name='fffff')
+#     print(asyncio.get_running_loop().is_running())
+#     for task in asyncio.all_tasks():
+#         print(task.get_name())
+#     while True:
+#         print('Сплю 10 сек')
+#         await sleep(10)
+#         task2.cancel()
+#         await sleep(10)
+#         task1.cancel()

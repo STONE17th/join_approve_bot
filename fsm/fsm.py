@@ -47,7 +47,7 @@ async def control_channel(callback: CallbackQuery, callback_data: CustomCallBack
         f'Автоматический прием заявок: {'✅' if channel.check_auto else '❌'}',
     ]
     if auto_approve:
-        message_list.append(f'От {channel.limits.min} до {channel.limits.max} в час')
+        message_list.append(f'От {channel.limit.min} до {channel.limit.max} в час')
     await bot.edit_message_text(
         **as_list(*message_list).as_kwargs(),
         chat_id=callback.message.chat.id,
@@ -169,7 +169,7 @@ async def confirm_requests(callback: CallbackQuery, callback_data: CustomCallBac
         print(f'Принято {joined_users}')
     else:
         channel.set_limits(amount)
-        channel.start_auto_approve(amount, bot)
+        await channel.start_auto_approve(amount, bot)
         await callback.answer(f'Done!\nАвтоматический прием пользователей запущен!', show_alert=True)
         print('Запущен прием автоматический')
     await control_channel(callback, callback_data, state, bot)

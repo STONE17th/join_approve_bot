@@ -1,14 +1,39 @@
 import asyncio
 
 from aiogram import Bot
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
+import asyncio
+from asyncio import create_task, run, sleep
 from dataclasses import dataclass
 from datetime import datetime
 from random import randint
 
 from classes.scheduler import Scheduler
 from database.data_base import DataBase
+
+
+# async def print_something(seconds: int):
+#     while True:
+#         await sleep(seconds)
+#         print(f'тут {seconds}')
+
+
+# async def main():
+#     task1 = create_task(thread_maintaining_communication(3), name='123')
+#     task2 = create_task(thread_maintaining_communication(5), name='fffff')
+#     print(asyncio.get_running_loop().is_running())
+#     for task in asyncio.all_tasks():
+#         print(task.get_name())
+#     while True:
+#         print('Сплю 10 сек')
+#         await sleep(10)
+#         task2.cancel()
+#         await sleep(10)
+#         task1.cancel()
+#
+#
+# run(main())
 
 
 @dataclass
@@ -45,23 +70,24 @@ class Request:
 
     async def approve(self, bot: Bot):
         approve_date = datetime.now()
+        DataBase.delete_request(self.channel_tg_id, self.request_tg_id)
         try:
-
+            print(f'Пробую принять {self.channel_tg_id} - {self.request_tg_id}')
             await bot.approve_chat_join_request(
                 chat_id=self.channel_tg_id,
                 user_id=self.request_tg_id,
             )
-            DataBase.approve_request(
-                channel_tg_id=self.channel_tg_id,
-                request_tg_id=self.request_tg_id,
-                approve_date=approve_date,
-            )
-            print(f'{self.request_tg_id} принят')
+            # print('Пробую удалить')
+            # DataBase.approve_request(
+            #     channel_tg_id=self.channel_tg_id,
+            #     request_tg_id=self.request_tg_id,
+            #     approve_date=approve_date,
+            # )
+            print(f'Принял {self.channel_tg_id} - {self.request_tg_id}')
             return True
         except Exception as e:
             print(e)
-            DataBase.delete_request(self.channel_tg_id, self.request_tg_id)
-            print(f'{self.request_tg_id} не принят')
+            print(f'Не принял {self.channel_tg_id} - {self.request_tg_id}')
             return False
 
     # def __eq__(self, other):
@@ -79,6 +105,7 @@ class Request:
 class Channel:
     # db = DataBase()
     _bot_scheduler = Scheduler()
+    tasks = {}
 
     # def __new__(cls, *args, **kwargs):
     #     if Channel._bot_scheduler is None:
@@ -90,6 +117,25 @@ class Channel:
         self.title = channel_title
         self.limit = Limits(min=min_requests, max=max_requests)
         self._requests: list[Request] | None = None
+
+    # @staticmethod
+    # async def say_something(text, seconds):
+    #     while True:
+    #         print(f'{text} ин {seconds}')
+    #         await asyncio.sleep(seconds)
+    #
+    # @classmethod
+    # async def start_task(cls, task_id, time):
+    #     task = asyncio.create_task(cls.say_something(f'{task_id}', time))
+    #     cls.tasks[task_id] = task
+    #     print(cls.tasks)
+    #
+    # @classmethod
+    # async def stop_task(cls, task_id):
+    #     print(cls.tasks)
+    #     task = cls.tasks[task_id]
+    #     print(type(task))
+    #     task.cancel()
 
     @classmethod
     def by_tg_id(cls, admin_tg_id: int, channel_tg_id: int):
@@ -133,40 +179,47 @@ class Channel:
 
     @property
     def check_auto(self) -> bool:
-        return bool(self._bot_scheduler.get_job(f'{self.channel_tg_id}'))
+        return self.channel_tg_id in Channel.tasks
 
-    def _stop_job(self):
-        self._bot_scheduler.remove_job(job_id=f'{self.channel_tg_id}')
-        # self.min_requests, self.max_requests = 0, 0
-
-    def start_auto_approve(self, time_delta: tuple[int, int], bot: Bot):
+    async def start_auto_approve(self, time_delta: tuple[int, int], bot: Bot):
         self.limit.min, self.limit.max = time_delta
-        self._bot_scheduler.add_job(
-            func=self.auto_approve,
-            args=(bot,),
-            id=f'{self.channel_tg_id}',
-            trigger='interval',
-            seconds=360,
-        )
-        if not self._bot_scheduler.running:
-            self._bot_scheduler.start()
+        task = asyncio.create_task(self._auto_approve(bot))
+        Channel.tasks[self.channel_tg_id] = task
+        # self._bot_scheduler.add_job(
+        #     func=await self.auto_approve(bot),
+        #     args=(bot,),
+        #     id=f'{self.channel_tg_id}',
+        #     trigger=IntervalTrigger(minutes=60),
+        #     replace_existing=True,
+        # )
+        # if not self._bot_scheduler.running:
+        #     self._bot_scheduler.start()
 
     def stop_auto_approve(self):
         if self.check_auto:
+            print('Прием заявок отключен')
             self._stop_job()
-        if not self._bot_scheduler.get_jobs():
-            self._bot_scheduler.shutdown()
+        print(Channel.tasks)
+        # if not self._bot_scheduler.get_jobs():
+        #     self._bot_scheduler.shutdown()
 
-    async def auto_approve(self, bot: Bot):
-        requests = randint(self.limit.min, self.limit.max)
-        time_pause = 360 // requests - 10
-        for _ in range(requests):
-            await asyncio.sleep(time_pause)
-            if self.requests:
-                await self.get_request(new=False).approve(bot)
-            else:
-                self._stop_job()
-                break
+    async def _auto_approve(self, bot: Bot):
+        while True:
+            requests_per_hour = randint(self.limit.min, self.limit.max)
+            time_pause = 3600 // requests_per_hour
+            for _ in range(requests_per_hour):
+                if self.requests:
+                    await self.get_request(new=False).approve(bot)
+                else:
+                    self._stop_job()
+                    break
+                await asyncio.sleep(time_pause)
+
+    def _stop_job(self):
+        task = Channel.tasks.pop(self.channel_tg_id)
+        task.cancel()
+        # self._bot_scheduler.remove_job(job_id=f'{self.channel_tg_id}')
+        # self.min_requests, self.max_requests = 0, 0
 
 
 class Admin:

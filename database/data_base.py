@@ -161,13 +161,13 @@ class DataBase:
         sql = 'DELETE FROM admins WHERE channel_tg_id=%s AND admin_tg_id=%s'
         self.execute(sql, (channel_tg_id, admin_tg_id), commit=True)
 
-    @classmethod
-    def approve_request(cls, channel_tg_id: int, request_tg_id: int, approve_date: datetime):
-        sqls = [
-            'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s',
-            'INSERT INTO approved_requests (channel_tg_id, request_tg_id, approve_date) VALUES (%s, %s, %s)',
-        ]
-        cls.execute(sqls, (channel_tg_id, request_tg_id), commit=True)
+    # @classmethod
+    # def approve_request(cls, channel_tg_id: int, request_tg_id: int, approve_date: datetime):
+    #     sqls = [
+    #         'DELETE FROM requests WHERE channel_tg_id=%s AND request_tg_id=%s',
+    #         'INSERT INTO approved_requests (channel_tg_id, request_tg_id, approve_date) VALUES (%s, %s, %s)',
+    #     ]
+    #     cls.execute(sqls, (channel_tg_id, request_tg_id), commit=True)
 
     @classmethod
     def delete_request(cls, channel_tg_id: int, request_tg_id: int):
