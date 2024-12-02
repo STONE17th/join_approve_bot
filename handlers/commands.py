@@ -6,7 +6,7 @@ from psycopg2.errors import UniqueViolation
 
 from datetime import datetime
 
-from classes.classes import Admin, Channel
+from classes.classes import Admin, Channel, Request
 from database.data_base import DataBase
 from keyborads import inline_keyboards
 
@@ -26,7 +26,7 @@ async def command_start(message: Message, bot: Bot):
     caption = as_list(
         *message_rows,
     )
-    keyboard = await inline_keyboards.kb_channels_list(admin, bot)
+    keyboard = inline_keyboards.kb_channels_list(admin)
     await message.answer(
         **caption.as_kwargs(),
         reply_markup=keyboard,
@@ -51,7 +51,8 @@ async def catch_forward_message(message: Message, bot: Bot):
 async def new_request(message: Message, bot: Bot):
     date_created = datetime.now()
     try:
-        DataBase().add_request(message.chat.id, message.from_user.id, date_created)
+        Request.create(message.chat.id, message.from_user.id)
+        # DataBase.add_request(message.chat.id, message.from_user.id, date_created)
     except UniqueViolation:
         pass
 
@@ -92,3 +93,11 @@ async def test_scheduler(message: Message, bot: Bot, command: CommandObject):
             count += 1
     print(len(channel))
     print(count)
+
+
+@commands_router.message(Command('refresh'))
+async def refresh_channels(message: Message, bot: Bot):
+    admin = Admin(message.from_user.id)
+    for channel_tg_id in admin.channels:
+        channel = await bot.get_chat(channel_tg_id)
+        DataBase.refresh_channels(channel.title, message.from_user.id, channel_tg_id)

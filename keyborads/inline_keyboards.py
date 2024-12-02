@@ -5,15 +5,13 @@ from .callback_data import CustomCallBack
 from classes import Admin, Channel
 
 
-async def kb_channels_list(admin: Admin, bot: Bot):
+def kb_channels_list(admin: Admin):
     keyboard = InlineKeyboardBuilder()
     for channel in admin.channels.values():
-        channel_title = await channel.title(bot)
-        channel_requests = channel.requests
         keyboard.button(
-            text=f'{channel_title}: {len(channel_requests)}',
+            text=f'{channel.title}',
             callback_data=CustomCallBack(
-                target_handler='select_channel',
+                target_handler='control_channel',
                 channel_tg_id=channel.channel_tg_id,
             ),
         )
@@ -28,26 +26,26 @@ async def kb_channels_list(admin: Admin, bot: Bot):
     return keyboard.as_markup()
 
 
-def kb_select_option(channel: Channel):
+def kb_select_approve_type(channel: Channel):
     keyboard = InlineKeyboardBuilder()
     keyboard.button(
         text='Старые',
         callback_data=CustomCallBack(
-            target_handler='select_option',
+            target_handler='type_selected',
             requests='old',
         ),
     )
     keyboard.button(
         text=('OFF' if channel.check_auto else 'ON'),
         callback_data=CustomCallBack(
-            target_handler='select_option',
+            target_handler='auto_approve_stop' if channel.check_auto else 'type_selected',
             requests='auto',
         ),
     )
     keyboard.button(
         text='Новые',
         callback_data=CustomCallBack(
-            target_handler='select_option',
+            target_handler='type_selected',
             requests='new',
         ),
     )
@@ -61,20 +59,18 @@ def kb_select_option(channel: Channel):
     return keyboard.as_markup()
 
 
-def kb_confirm(channel_tg_id: int):
+def kb_confirm():
     keyboard = InlineKeyboardBuilder()
     keyboard.button(
         text='Да',
         callback_data=CustomCallBack(
             target_handler='confirm_approve',
-            channel_tg_id=channel_tg_id,
         ),
     )
     keyboard.button(
         text='Назад',
         callback_data=CustomCallBack(
-            target_handler='select_channel',
-            channel_tg_id=channel_tg_id,
+            target_handler='back',
         ),
     )
     keyboard.button(
@@ -87,13 +83,13 @@ def kb_confirm(channel_tg_id: int):
     return keyboard.as_markup()
 
 
-def back_button(channel_tg_id: int, target: str):
+def back_button():
     keyboard = InlineKeyboardBuilder()
     keyboard.button(
         text='Назад',
         callback_data=CustomCallBack(
-            target_handler=target,
-            channel_tg_id=channel_tg_id,
+            target_handler='back',
+            # channel_tg_id=channel_tg_id,
         ),
     )
     return keyboard.as_markup()
