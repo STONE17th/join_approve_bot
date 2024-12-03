@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any
+from typing import Any
 
 import psycopg2
 import os
