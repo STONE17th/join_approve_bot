@@ -11,6 +11,20 @@ from keyborads import inline_keyboards
 router = Router()
 
 
+def number_to_emoji(number: int | str) -> str:
+    digits = {'0': '0️⃣',
+              '1': '1️⃣',
+              '2': '2️⃣',
+              '3': '3️⃣',
+              '4': '4️⃣',
+              '5': '5️⃣',
+              '6': '6️⃣',
+              '7': '7️⃣',
+              '8': '8️⃣',
+              '9': '9️⃣'}
+    return ''.join([digits[ch] for ch in str(number)])
+
+
 def update_adapter(update: Message | CallbackQuery):
     if isinstance(update, Message):
         return update.from_user.id, update.message_id, update.text
@@ -31,7 +45,7 @@ async def control_channel(callback: CallbackQuery, callback_data: CustomCallBack
     channel = data['channel']
     auto_approve = channel.check_auto
     message_list = [
-        f'Непринятых заявок в этом канале: {len(channel.requests)}',
+        f'Непринятых заявок в этом канале: {number_to_emoji(len(channel.requests))}',
         'Каких пользователей будем добавлять?',
         f'Автоматический прием заявок: {'✅' if channel.check_auto else '❌'}',
     ]
@@ -70,9 +84,9 @@ async def stop_auto_approve(callback: CallbackQuery, callback_data: CustomCallBa
                             bot: Bot) -> None:
     data = await state.get_data()
     channel = data['channel']
-    channel.stop_auto_approve()
+    amount = channel.stop_auto_approve()
     await callback.answer(
-        text=f'Done!\nАвтоматический прием пользователей остановлен!',
+        text=f'Done!\nАвтоматический прием пользователей остановлен!\nБыло принято {number_to_emoji(amount)} заявок',
         show_alert=True,
     )
     await control_channel(callback, callback_data, state, bot)
@@ -101,7 +115,7 @@ async def amount_users(message: Message | CallbackQuery, state: FSMContext, bot:
             if input_value.isdigit() and int(input_value) > 0:
                 await state.set_state(CallbackState.confirm_approve)
                 await state.update_data(amount=int(input_value))
-                message_text = f'Принять {input_value} {requests[data["requests"]]} заявок?'
+                message_text = f'Принять {number_to_emoji(input_value)} {requests[data["requests"]]} заявок?'
                 keyboard = correct_keyboard
     else:
         message_text = f'‼️Ошибка‼️\nВы ввели: {message_text}\nТребуется ввести два целых числа!'
@@ -111,7 +125,7 @@ async def amount_users(message: Message | CallbackQuery, state: FSMContext, bot:
                 if min_value < max_value:
                     await state.set_state(CallbackState.confirm_approve)
                     await state.update_data(amount=(min_value, max_value))
-                    message_text = f'Запустить автоматический прием от {min_value} до {max_value} в час?'
+                    message_text = f'Запустить автоматический прием от {number_to_emoji(min_value)} до {number_to_emoji(max_value)} в час?'
                     keyboard = correct_keyboard
                 else:
                     message_text = (f'‼️Ошибка‼️\nВы ввели: {message_text}\n'
@@ -135,7 +149,7 @@ async def confirm_requests(callback: CallbackQuery, callback_data: CustomCallBac
             if await channel.get_request(data['requests'] == 'new').approve(bot):
                 joined_users += 1
             amount -= 1
-        await callback.answer(f'Done!\nДобавлено {joined_users} пользователей!', show_alert=True)
+        await callback.answer(f'Done!\nДобавлено {number_to_emoji(joined_users)} пользователей!', show_alert=True)
     else:
         channel.set_limits(amount)
         await channel.start_auto_approve(amount, bot)

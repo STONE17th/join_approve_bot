@@ -47,6 +47,9 @@ class Request:
                 chat_id=self.channel_tg_id,
                 user_id=self.request_tg_id,
             )
+            auto_approve = Channel.tasks.get(self.channel_tg_id, None)
+            if auto_approve:
+                auto_approve[1] += 1
             return True
         except Exception as e:
             return False
@@ -89,11 +92,11 @@ class Channel:
     async def start_auto_approve(self, time_delta: tuple[int, int], bot: Bot):
         self.limit.min, self.limit.max = time_delta
         task = asyncio.create_task(self._auto_approve(bot))
-        Channel.tasks[self.channel_tg_id] = task
+        Channel.tasks[self.channel_tg_id] = [task, 0]
 
     def stop_auto_approve(self):
         if self.check_auto:
-            self._stop_job()
+            return self._stop_job()
 
     async def _auto_approve(self, bot: Bot):
         while True:
@@ -109,7 +112,8 @@ class Channel:
 
     def _stop_job(self):
         task = Channel.tasks.pop(self.channel_tg_id)
-        task.cancel()
+        task[0].cancel()
+        return task[1]
 
 
 class Admin:
